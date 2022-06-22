@@ -30,6 +30,6 @@
 - 회의실 예약자 :
 
 ### 참여 인원
-| ![](https://github.com/JaeWooook.png?size=100) | ![](https://github.com/zeunxx.png?size=100) | ![](https://github.com/yhLee11.png?size=100) | ![](https://github.com/jyzayu.png?size=100) | 
-|:----------------------------------------------:|:------------------------:|:--------------------------------------------:|:-------------------------------------------:|
-|                     [정재욱]                      |          [박지은]           |                    [이연희]                     |                    [최종윤]                    |
+| ![](https://github.com/JaeWooook.png) |             ![](https://github.com/zeunxx.png)             |             ![](https://github.com/yhLee11.png)              |             ![](https://github.com/jyzayu.png)             | 
+|:-------------------------------------:|:----------------------------------------------------------:|:------------------------------------------------------------:|:----------------------------------------------------------:|
+|  [정재욱](https://github.com/JaeWooook)  |              [박지은](https://github.com/zeunxx)              |              [이연희](https://github.com/yhLee11)               |              [최종윤](https://github.com/jyzayu)              |
