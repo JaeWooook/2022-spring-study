@@ -1,7 +1,7 @@
 ## 스프링 스터디
 
 ### 책
--스프링5 프로그래밍 입문 (최범균 저)
+- 스프링5 프로그래밍 입문 (최범균 저)
 
   ![image](https://user-images.githubusercontent.com/55322459/174442297-5e169730-6ee4-4f8e-a0ca-af0d240cce02.png)
 
