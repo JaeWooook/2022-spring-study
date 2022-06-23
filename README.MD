@@ -6,8 +6,8 @@
   ![image](https://user-images.githubusercontent.com/55322459/174442297-5e169730-6ee4-4f8e-a0ca-af0d240cce02.png)
 
 ### 일정
-- 주 1회 O시
-- 기본 O시, 안되는 사람이 과반수 이상이면 O시
+- 주 1회 월요일 19시 30분 ~ 20시 30분
+- 기본 19시 30분, 안되는 사람이 과반수 이상이면 O시
 
 ### 진행방식
 - 발표는 주 1회 1명 (PPT, 말로 설명, 자료 읽기, 발표자가 편한 방식 아무방식으로..)
@@ -19,17 +19,25 @@
 - 학습 인증과 질문 또는 토의할 내용은 최소 미팅 1시간전 제출 이외 벌금 처리
 
 ### 스터디 진도 일정
-
+ - 7/4 3강 스프링 DI 정재욱
+ - 7/11 4강 의존 자동 주입 박지은, 5강 컴포넌트 스캔 최종윤
+ - 7/18 6강 이연희 ~ 7강 정재욱
+ - 7/25 8강 박지은 ~ 9강 최종윤
+ - 8/1 10강 이연희 ~ 11강 정재욱
+ - 8/8 12강 이연희 ~ 13강 박지은
+ - 8/16 14강 최종윤 ~ 15강 정재욱
+ - 8/22 16강 이연희 ~ 17강 박지은
+ - 8/29 임시
 
 ### 🤑벌금🤑
 - 학습 인증 지각 시, 모임 지각 시 1000원
-- 학습 미인증 시, 발표 미준비 시, 모임 결석 시 10000원
+- 학습 미인증 시, 발표 미준비 시, 모임 결석 시 5000원
 
 ### 역할
-- 총무 :
-- 회의실 예약자 :
+- 총무 : [zeunxx](https://github.com/zeunxx)
+- 회의실 예약자 : [yhLee11](https://github.com/yhLee11)
 
 ### 참여 인원
 | ![](https://github.com/JaeWooook.png) |             ![](https://github.com/zeunxx.png)             |             ![](https://github.com/yhLee11.png)              |             ![](https://github.com/jyzayu.png)             | 
 |:-------------------------------------:|:----------------------------------------------------------:|:------------------------------------------------------------:|:----------------------------------------------------------:|
-|  [정재욱](https://github.com/JaeWooook)  |              [박지은](https://github.com/zeunxx)              |              [이연희](https://github.com/yhLee11)               |              [최종윤](https://github.com/jyzayu)              |
+|  [JaeWooook](https://github.com/JaeWooook)  |              [zeunxx](https://github.com/zeunxx)              |              [yhLee11](https://github.com/yhLee11)               |              [jyzayu](https://github.com/jyzayu)              |
