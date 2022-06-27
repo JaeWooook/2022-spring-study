@@ -1,6 +1,6 @@
 # 스프링의 DI 설정
 ## ❗스프링을 이용한 객체 조립
-----
+
 스프링은 Assembler 클래스의 생성자 코드처럼 필요한 객체를 생성하고 생성한 객체에 의존을 주입한다. 스프링은 Assembler#getMemberRegisterService() 메서드처럼 객체를 제공하는 기능을 정의하고 있다. 차이점은 Assembler는 MemberRegisterService나 MemberDao와 같이 특정 타입의 클래스만 생성한 반면 **스프링은 범용 조립기**라는 점이다. 
 
 스프링을 사용하려면 스프링이 어떤 객체를 생성하고 의존을 어떻게 주입할지 정의한 설정 정보를 작성해야 한다. 
@@ -63,7 +63,6 @@ public class MainForSpring{
 MainForSpring 클래서가 MainForAssembler 클래스와 다른 점은 Assembler 클래스 대신 **스프링 컨테이너인 ApplicationContext를 사용했다는 것이다.**
 
 ## ❗ DI 방식
-----
 ### 1. 생성자 방식
 
 ```java
@@ -94,8 +93,7 @@ public class MemberDao{
 }
 ```
 
-## ❗ 2. setter 메서드 방식
-----
+### 2. setter 메서드 방식
 지정한 이메일을 갖는 Member를 찾아서 정보를 콘솔에 출력하는 클래스이다.
 ```java
 public class MemberInfoPrinter{
@@ -136,7 +134,7 @@ public class AppCtx{
 }	
 ```
 
-### 생성자 vs setter 메서드
+### 🔻 생성자 vs setter 메서드
 1. **생성자 방식**: 빈 객체를 생성하는 시점에 모든 의존 객체가 주입된다.
 	🔹 **장점**
     빈 객체를 생성하는 시점에 필요한 모든 의존 객체를 주입받기 때문에 객체를 사용할 때 완전한 상태로 사용할 수 있다. 
@@ -150,8 +148,7 @@ public class AppCtx{
     setter 메서드를 사용해서 필요한 의존 객체를 전달하지 않아도 빈 객체가 생성되기 때문에 객체를 사용하는 시점에 NullPointerException이 발생할 수 있다. 
     
     
-## ❗ 3. 기본 데이터 타입 값 설정
-----
+### 3. 기본 데이터 타입 값 설정
 ```java
 public class VersionPrinter{
 	private int majorVersion;

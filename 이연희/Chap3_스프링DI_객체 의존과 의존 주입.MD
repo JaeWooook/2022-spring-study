@@ -1,7 +1,5 @@
 Chap3 Dependency Injection
-==========================
 ## ❗ Dependency(의존) 상태
-------
 #### 이메일로 회원가입을 처리하는 로직
 ```java
 public class MemberRegisterService{
@@ -36,7 +34,6 @@ MemberRegisterService svc = new MemberRegisterService();
   
 
 ## ❗ Dependency Injection(의존 주입)
----------
 💡 **Dependency Injection은 의존하는 객체를 직접 생성하는 대신 의존 객체를 전달받는 방식을 사용한다.**
 
 #### MemberRegisterService 클래스에 DI 방식을 적용
@@ -62,7 +59,6 @@ MemberRegisterService 객체를 생성할 때 생성자에 MemberDao 객체를 �
 
 
 ## ❗ DI와 의존 객체 변경의 유연함
---------
 회원 데이터의 빠른 조회를 위해 캐시를 적용해야 하는 상황이 발생했다고 가정하자. MemberDao 클래스를 상속받은 CachedMemberDao 클래스를 생성한다.
 ```java
 public class CachedMemberDao extends MemberDao{
