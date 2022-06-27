@@ -1,4 +1,4 @@
-Chap3 Dependency Injection
+# Dependency Injection - 객체 의존과 의존 주입
 ## ❗ Dependency(의존) 상태
 #### 이메일로 회원가입을 처리하는 로직
 ```java

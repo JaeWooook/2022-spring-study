@@ -1,4 +1,4 @@
-# 스프링의 DI 설정
+# Dependency Injection - 스프링의 DI 설정
 ## ❗스프링을 이용한 객체 조립
 
 스프링은 Assembler 클래스의 생성자 코드처럼 필요한 객체를 생성하고 생성한 객체에 의존을 주입한다. 스프링은 Assembler#getMemberRegisterService() 메서드처럼 객체를 제공하는 기능을 정의하고 있다. 차이점은 Assembler는 MemberRegisterService나 MemberDao와 같이 특정 타입의 클래스만 생성한 반면 **스프링은 범용 조립기**라는 점이다. 
