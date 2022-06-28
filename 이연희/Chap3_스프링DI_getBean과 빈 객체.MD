@@ -2,6 +2,7 @@
 
 ## getBean() 메서드
 getBean은 사용할 빈 객체를 구하는 메서드이다. 첫번째 인자는 빈의 이름, 두번째 인자는 빈의 타입이다. 
+
 ```java
 VersionPrinter versionPrinter = ctx.getBean("versionPrinter",VersionPrinter.class);
 ```
