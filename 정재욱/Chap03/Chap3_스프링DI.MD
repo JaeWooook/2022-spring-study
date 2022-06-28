@@ -35,6 +35,8 @@ public class MemberRegisterService {
 ### DI를 통한 의존 처리
 > DI = Dependency Injection = 의존 주입 : 의존하는 객체를 직접 생성하는 대신 의존 객체를 전달 받는 방식이다.
 
+![image](https://user-images.githubusercontent.com/55322459/176185225-f7cfacc3-bb9a-4e93-9fa6-219447f479d4.png)
+
 ```java
 package spring;
 
