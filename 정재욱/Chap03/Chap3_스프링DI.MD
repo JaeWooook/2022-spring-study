@@ -121,5 +121,95 @@ ChangePasswordService pwSc = new ChangePasswordService(memberDao);
 - 이전의 직접 객체 생성하는 방식이라면, MemberRegisterService클래스, ...등 모든 사용하는 클래스에서 생성할때마다 변경해주어야한다.
 - 생성자를 통해 객체를 주입하기 때문에 의존하는 객체를 사용하는 상황에서만 생성자를 생성하면서 주입하면된다!
 
+### 객체 조립기(assembler)
+> 의존 객체를 주입한다는 것은 서로 다른 두 객체를 조립한다고 생각할 수 있는데, 이런 의미에서 이 클래스를
+> 조립기라고도 표현한다.
 
+```java
+package assembler;
 
+import spring.ChangePasswordService;
+import spring.MemberDao;
+import spring.MemberRegisterService;
+
+public class Assembler {
+
+	private MemberDao memberDao;
+	private MemberRegisterService regSvc;
+	private ChangePasswordService pwdSvc;
+
+	public Assembler() {
+		memberDao = new MemberDao();
+		regSvc = new MemberRegisterService(memberDao);
+		pwdSvc = new ChangePasswordService();
+		pwdSvc.setMemberDao(memberDao);
+	}
+
+	public MemberDao getMemberDao() {
+		return memberDao;
+	}
+
+	public MemberRegisterService getMemberRegisterService() {
+		return regSvc;
+	}
+
+	public ChangePasswordService getChangePasswordService() {
+		return pwdSvc;
+	}
+
+}
+```
+ - Assembler 클래스에서 Assembler객체를 생성한다.
+ - MemberRegisterService 클래스는 생성자를 통해, ChangePasswordService 클래스는 setter를 통해서 객체를 주입한다.
+
+이전에 학습한 내용처럼 MemberDao클래스가 아니라 MemberDao 클래스를 상속받는 CachedMemberDao클래스를
+사용한다면 Assembler클래스에서 객체를 초기화하는 코드만 변경하면 된다.
+
+#### 객체 생성자 주입 vs 객체 세터 주입
+
+### 스프링의 DI 설정
+> 스프링은 Assembler 클래스의 생성자 코드 처럼 필요한 객체를 생성하고,
+> 생성한 객체에 의존을 주입한다.
+> 또한 스프링은 Assembler#getMemberRegisterService() 메서드처럼 객체를 제공하는 기능을 정의하고있다.
+> 차이점이라면 Assembler는 MemberRegisterService나 MemberDao와 같이 특정 타입의 클래스만 생성한 반면 스프링은 범용 조립기라는 점이다.
+
+#### 스프링 범용 조립기란?
+
+#### 스프링을 이용한 객체 조립과 사용
+```java
+package config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import spring.ChangePasswordService;
+import spring.MemberDao;
+import spring.MemberRegisterService;
+
+@Configuration
+public class AppCtx {
+    public AppCtx() {
+    }
+
+    @Bean
+    public MemberDao memberDao() {
+        return new MemberDao();
+    }
+
+    @Bean
+    public MemberRegisterService memberRegSvc() {
+        return new MemberRegisterService(this.memberDao());
+    }
+
+    @Bean
+    public ChangePasswordService changePwdSvc() {
+        ChangePasswordService pwdSvc = new ChangePasswordService();
+        pwdSvc.setMemberDao(this.memberDao());
+        return pwdSvc;
+    }
+}
+```
+- @Configuration 애노테이션은 스프링 설정 클래스를 의미한다.
+- 이 애노테이션을 붙여야 스프링 설정 클래스로 사용할 수 있다.
+- @Bean 애노테이션은 해당 메서드가 생성한 객체를 스프링빈이라고 설정한다.
+- @Bean이 붙어있는 각각의 메서드마다 한 개의 빈 객체를 생성한다.
+- 메서드의 이름을 빈 객체의 이름으로 사용한다.
