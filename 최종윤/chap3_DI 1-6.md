@@ -1,16 +1,26 @@
-1. 의존이란? 
+1.의존이란?
+2DI를 통한 의존처리
+3DI와 의존 객체 변경의 유연함
+4예제 프로젝트
+5.객체 조립기
+6.스프링 DI설정
+
+##
+1의존이란? 
  한 클래스가 다른 클래스의 메서드를 실행할 때 의존한다고 표현한다. 
 
-2.DI를 통한 의존처리 
+##
+2DI를 통한 의존처리 
 객체를 클래스 내부에서 직접 생성하는 대신
 DI는 생성자의 전달인자로 객체를 전달받는 방식을 사용한다 . 
 
-3. DI와 의존 객체 변경의 유연함
+##
+3DI와 의존 객체 변경의 유연함
 MD클래스는 db에 데이터를 저장하는데 , 빠른 조회를 위해 캐시를 적용해야 하는 상황에
 MD클래스를 상속받은 CachedMD 클래스를 사용하기로 하면 
 MRS클래스 내부의 코드와 CPS클래스 내부의 코드를 수정해야 한다. 
 클래스 외부에서 생성후 인자로 전달하는 경우  외부에서만 바꾸어주면 수정이 완료된다. 
-
+```
 MD md = new MD(); 에서 다음과 같이 바꾸면된다. 
 MD md = new CMD(); - CMD는 MD를 상속받았으므로 MD타입 참조변수에 넣을 수 있다.
 
@@ -20,8 +30,8 @@ public class MRS{
 public class CPS{
 	private MD md = new MD();
 	...}
-
-4.예제 프로젝트 만들기... 
+```
+##4.예제 프로젝트 만들기... 
 ###public class Member{
 id , email password , name, LocalDateTime이 필드로 들어간다. 
 LocalDateTime은 등록시간을 기록하고 
@@ -32,14 +42,17 @@ LocalDateTime은 getter만 있고,
 ChangePassword라는 메서드가 있다 .  - 현재 패스워드와  입력받은 전 패스워드가 다르면 exception을 발생시키고 
 맞으면  새로운 패스워드로 변경한다. 
 인자의 순서를 제대로 입력했는 지 확인하는건가? 
-###public class MemberDao{
+```
+public class MemberDao{
 	nextId 와  member객체를 email 과 쌍으로 저장하는 Map이 있다. 
 member 객체를 키값인 email로 꺼내는 public Member selectByEmail(String email) 이 있다. 
 public Member selectByEmail(String email) {
 return map.get(email);
 }
+```
 member의 등록된 순서를 나타내며 식별자인 id를 1씩증가시키면서 등록시킨다. 
 프로그램이 종료될때까지 값이 유지되도록 static 변수로 지정한다. 
+````
 public void insert(Member member){
 	member.setId(++nextId);
 	map.put(member.getEmail().member);   -멤버 저장하는 map은 member의 email을 키값으로 갖는다 . 
@@ -47,7 +60,7 @@ public void insert(Member member){
 public void update(Member member){
 	map.put(member.getEmail(),member); -  member의 키값을 업데이트한다.? 뭐하는거
 }
-
+```
 회원가입 처리 클래스 
 멤버가 중복될때 익셉션을 나타내는 클래스,  
 등록할 멤버의 필드값들을 모아서 인자로 전달할 RegisterRequest - 왜 근데 Member로 그냥 전달받지 않고? 
@@ -85,13 +98,6 @@ public Long register(RegisterRequest req){
 return newM.getId();
 }
 
-
-
-##5.객체 조립기
-##6.스프링 DI설정
-8.두 개 이상의 설정 파일 사용하기
-9.1getBean()메서드 사용 
-10.주입 대상 객체를 모두 빈 객체로 설정해야 하나?
 
 ##5.객체 조립기
 의존관계가 있는 클래스에서  DI 방식으로 의존 객체 전달할 때
