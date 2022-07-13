@@ -97,7 +97,7 @@ ExeTimeCalculator cal=new ExeTimeCalculator(impeCal);
 long result=cal.factorial(4);
 ```
 실행흐름을 보면 ExeTimeCalculator 클래스의 factorial() 메서드는 결과적으로 ImpeCalculator의 메서드 실행시간을 구해서 콘솔에 출력한다. 
-![image](https://user-images.githubusercontent.com/43868499/178849729-528ef34b-0754-4082-9170-1085c724bb43.png){: width="150" height="100"}
+![image](https://user-images.githubusercontent.com/43868499/178849729-528ef34b-0754-4082-9170-1085c724bb43.png)
 
 ```java
 public class MainProxy{
