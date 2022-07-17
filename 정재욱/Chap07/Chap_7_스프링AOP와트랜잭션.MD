@@ -232,7 +232,7 @@ public class UserService {
   - 하나의 작업을 수행하는 서비스 계층 메서드에 붙이는 것이 통상적이다.
 
 #### 실제 스프링 프레임워크에 트랜잭션 옵션
-![img_1.png](img_1.png)
+![image](https://user-images.githubusercontent.com/55322459/179402147-bf8a7c2d-fe0a-417d-ba3d-c545b8474c2c.png)
  - 트랜잭션 매니저 또한 속성으로 등록할 수 있다. 빈으로 등록된 특수한 트랜잭션 매니저를 속성으로 등록할 수 있다.
 
 ### @Transactional - propagation
@@ -246,11 +246,11 @@ public class UserService {
 
  >메서드1 -> 트랜잭션1 생성
 
-![img_2.png](img_2.png)
+![image](https://user-images.githubusercontent.com/55322459/179402112-875cb16e-58f6-4e34-b84b-eca924fa015d.png)
 
 > 메서드2 -> 트랜잭션2 생성
 
-![img_3.png](img_3.png)
+![image](https://user-images.githubusercontent.com/55322459/179402090-0599c8d7-3a60-46df-ae9e-cd8638dd6aae.png)
 - 진행중인 트랜잭션이 없을 경우 메서드1은 트랜잭션1로 시작되고, 중간에 메서드2가 추가되서 트랜잭션2가 되면 아래의 그림 처럼 트랜잭션1에 추가되어 하나의 트랜잭션으로 실행 되게 된다.
 - 하나의 트랜잭션이 실패하면 트랜잭션1,2 모두 롤백되고, 2개의 트랜잭션이 모두 성공하면 2개의 트랜잭션 모두 commit된다.
 
@@ -258,12 +258,12 @@ __요약__ : 디폴트값으로 미리 시작된 트랜잭션이 있으면 참�
 
 #### 🔶 1. @Transactional(propagation=Propagation.SUPPORTS)
 
-![img.png](img.png)
+![image](https://user-images.githubusercontent.com/55322459/179402084-1cfe03d7-fe8c-4b17-bf93-caa9efeb20cb.png)
 __요약__ : 이미 시작된 트랜잭션이 있으면 참여하고, 그렇지 않으면 트랜잭션 없이 진행한다. 트랜잭션이 없긴 하지만 해당 경계 안에서 Connection이나 하이버네이트 Session등을 공유할 수 있다.
 
 #### 🔶 2. @Transactional(propagation=Propagation.MANDATORY)
 
-![img_4.png](img_4.png)
+![image](https://user-images.githubusercontent.com/55322459/179402043-a429f301-30f7-4d33-912f-6ef0863dc2ce.png)
  - 진행중인 트랜잭션이 있으면 참여하고, 없으면 예외가 발생한다.
 
 __요약__ : 혼자서는 트랜잭션을 시작할 수 없고, 메서드를 실행할 수도없다.
@@ -271,45 +271,45 @@ __요약__ : 혼자서는 트랜잭션을 시작할 수 없고, 메서드를 실
  
 #### 🔶 3. @Transactional(propagation=Propagation.REQUIRES_NEW)
 
-![img_5.png](img_5.png)
+![image](https://user-images.githubusercontent.com/55322459/179402015-a45b7451-d7cf-4d04-b475-d76b4ef07a60.png)
  - 새로운 메서드1이 실행되면 트랜잭션1로 실행하고, 새로운 메서드2가 실행되면 트랜잭션1을 보류하고, 트랜잭션2를 실행한다.
 
 __요약__ : 항상 새로운 트랜잭션을 시작한다. 이미 진행 중인 트랜잭션이 있으면 트랜잭션을 잠시 보류시킨다.
 
 #### 🔶 4. @Transactional(propagation=Propagation.NOT_SUPPORTED)
 
-![img_6.png](img_6.png)
+![image](https://user-images.githubusercontent.com/55322459/179401980-459a0e9d-5272-42c2-a1ec-90f8b6f93008.png)
  - 트랜잭션1이 실행되고 있다면 트랜잭션1을 보류하고 메서드2를 먼저 실행한다. 메서드2는 트랜잭션2가 되지 않는다.
 
 __요약__ : 트랜잭션을 사용하지 않게 한다. 이미 진행 중인 트랜잭션이 있으면 보류시킨다.
 
 #### 🔶 5. @Transactional(propagation=Propagation.NEVER)
 
-![img_7.png](img_7.png)
+![image](https://user-images.githubusercontent.com/55322459/179401967-3bd547dd-4c2f-46d6-96a0-dd17fe338f4f.png)
  - 이미 실행되는 트랜잭션이 없다면 실행하려는 메서드를 실행하지만, 기존에 실행되는 트랜잭션이 존재한다면 예외를 발생 시킨다.
 
 __요약__ : 트랜잭션을 사용하지 않도록 강제한다. 이미 진행 중인 트랜잭션도 존재하면 안된다. 예외를 발생 시킨다.
 
 #### 🔶 6. @Transactional(propagation=Propagation.NESTED)
 
-![img_8.png](img_8.png)
+![image](https://user-images.githubusercontent.com/55322459/179401950-7e3cccdc-f08d-43ea-908c-0da6192254e0.png)
  - 트랜잭션1을 실행하고 트랜잭션2가 실행되는경우 Required와 다르게 트랜잭션1이 실행되다가 문제를 일으키면 트래잭션1과 2모두 롤백된다.
  - 하지만, 트랜잭션2가 문제를 발생할 경우 트랜잭션1은 아무 문제없이 commit된다.
 
 __요약__ : 이미 진행중인 트랜잭션이 있으면 중첩 트랜잭션을 시작한다. 중첩된 트랜잭션은 먼저 시작된 부모 트랜잭션의 커밋과 롤백에는 영향을 받지만 자신의 커밋과 롤백은 부모 트랜잭션에게 영향을 주지 않는다.
 
 #### 트랜잭션 전파 정리
-![img_14.png](img_14.png)
+![image](https://user-images.githubusercontent.com/55322459/179401806-b1a16375-feb9-4b7e-8fa9-deca63619ea2.png)
 
 ### 트랜잭션 격리 수준 (Isolation)
-![img_9.png](img_9.png)
+![image](https://user-images.githubusercontent.com/55322459/179401928-c528b142-1e2d-489e-ba68-1422222252d6.png)
  > 트랜잭션의 격리 수준 아래로 갈수록 격리수준은 올라가지만, 성능이 떨어진다.
  > 데이터 정합성과 성능은 반비례한다.
 
 #### 🟢 1. READ-UNCOMMITTED
 > 커밋 전의 트랜잭션의 데이터 변경 내용을 다른 트랜잭션이 읽는 것을 허용
 
-![img_10.png](img_10.png)
+![image](https://user-images.githubusercontent.com/55322459/179401900-1a61d149-706e-44a4-9f99-30968392ee87.png)
 
 > 더티리드(Dirty Read)라는 현상이 발생할 수 있다.
  - 트랜잭션 A가 트랜잭션을 끝마치지 못하고 Rollback이 되었다면
@@ -319,7 +319,7 @@ __요약__ : 이미 진행중인 트랜잭션이 있으면 중첩 트랜잭션�
 > 커밋이 완료된 트랜잭션의 변경사항만 다른 트랜잭션에서 조회 가능
  트랜 잭션이 이루어지는 동안 다른 사용자는 해당 데이터에 접근이 불가능하다.
 
-![img_11.png](img_11.png)
+![image](https://user-images.githubusercontent.com/55322459/179401851-0ddfaba5-5aaa-4464-a0a8-d41e49a306ae.png)
 
 > 논리피터블리드(Non-Repeatable Read) 문제
  - 트랜잭션 B에서 다른 시점에 조회 했을 때 데이터가 다른값이 될 경우에 대한 문제
@@ -328,7 +328,7 @@ __요약__ : 이미 진행중인 트랜잭션이 있으면 중첩 트랜잭션�
 #### 🟢 3. REPEATABLE-READ
 > 트랜잭션 범위 내에서 조회한 내용이 항상 동일함을 보장
 
-![img_12.png](img_12.png)
+![image](https://user-images.githubusercontent.com/55322459/179401829-b46c1b69-b04c-4f9d-b8ee-0b71380f61ca.png)
  - Non-Repeatable Read문제를 방지한다.
  - 하나의 트랜잭션이 읽은 로우를 다른 트랜잭션이 수정하는 것을 막아준다.
  - 하지만 새로운 로우를 추가하는 것은 제한하지 않는다. 따라서 select로 조건에 맞는 로우를 전부 가져오는 경우 트랜잭션이 끝나기 전에 추가된 로우가 발견될 수 있다.
@@ -342,4 +342,4 @@ __요약__ : 이미 진행중인 트랜잭션이 있으면 중첩 트랜잭션�
  - 가장 안전한 격리 수준이지만 가장 성능이 떨어지기 때문에 극단적인 안전한 작업이 아닐경우 자주 사용되지 않는다.
 
 #### 트랜잭션 속성에 따른 문제점들 정리
-![img_13.png](img_13.png)
+![image](https://user-images.githubusercontent.com/55322459/179401764-212ca5e9-59d2-42f0-b421-1ce4e5bbb04a.png)
