@@ -242,7 +242,7 @@ public class UserService {
 > 
 > 트랜 잭션 경계의 시작 지점에서 트랜잭션 전파 속성을 참조해서 해당 범위의 트랜잭션을 어떤 식으로 진행시킬지 결정할 수 있다.
 
-####@Transactional(propagation=Propagation.REQUIRED)
+#### 🔶 1. @Transactional(propagation=Propagation.REQUIRED)
 
  >메서드1 -> 트랜잭션1 생성
 
@@ -256,12 +256,12 @@ public class UserService {
 
 __요약__ : 디폴트값으로 미리 시작된 트랜잭션이 있으면 참여하고 없으면 새로 시작한다.
 
-#### 🔶 1. @Transactional(propagation=Propagation.SUPPORTS)
+#### 🔶 2. @Transactional(propagation=Propagation.SUPPORTS)
 
 ![image](https://user-images.githubusercontent.com/55322459/179402084-1cfe03d7-fe8c-4b17-bf93-caa9efeb20cb.png)
 __요약__ : 이미 시작된 트랜잭션이 있으면 참여하고, 그렇지 않으면 트랜잭션 없이 진행한다. 트랜잭션이 없긴 하지만 해당 경계 안에서 Connection이나 하이버네이트 Session등을 공유할 수 있다.
 
-#### 🔶 2. @Transactional(propagation=Propagation.MANDATORY)
+#### 🔶 3. @Transactional(propagation=Propagation.MANDATORY)
 
 ![image](https://user-images.githubusercontent.com/55322459/179402043-a429f301-30f7-4d33-912f-6ef0863dc2ce.png)
  - 진행중인 트랜잭션이 있으면 참여하고, 없으면 예외가 발생한다.
@@ -269,28 +269,28 @@ __요약__ : 이미 시작된 트랜잭션이 있으면 참여하고, 그렇지 
 __요약__ : 혼자서는 트랜잭션을 시작할 수 없고, 메서드를 실행할 수도없다.
 즉, 혼자서는 독립적으로 트랜잭션을 진행할 수 없다. 독립적으로 트랜잭션을 진행하면 안되는 경우 사용
  
-#### 🔶 3. @Transactional(propagation=Propagation.REQUIRES_NEW)
+#### 🔶 4. @Transactional(propagation=Propagation.REQUIRES_NEW)
 
 ![image](https://user-images.githubusercontent.com/55322459/179402015-a45b7451-d7cf-4d04-b475-d76b4ef07a60.png)
  - 새로운 메서드1이 실행되면 트랜잭션1로 실행하고, 새로운 메서드2가 실행되면 트랜잭션1을 보류하고, 트랜잭션2를 실행한다.
 
 __요약__ : 항상 새로운 트랜잭션을 시작한다. 이미 진행 중인 트랜잭션이 있으면 트랜잭션을 잠시 보류시킨다.
 
-#### 🔶 4. @Transactional(propagation=Propagation.NOT_SUPPORTED)
+#### 🔶 5. @Transactional(propagation=Propagation.NOT_SUPPORTED)
 
 ![image](https://user-images.githubusercontent.com/55322459/179401980-459a0e9d-5272-42c2-a1ec-90f8b6f93008.png)
  - 트랜잭션1이 실행되고 있다면 트랜잭션1을 보류하고 메서드2를 먼저 실행한다. 메서드2는 트랜잭션2가 되지 않는다.
 
 __요약__ : 트랜잭션을 사용하지 않게 한다. 이미 진행 중인 트랜잭션이 있으면 보류시킨다.
 
-#### 🔶 5. @Transactional(propagation=Propagation.NEVER)
+#### 🔶 6. @Transactional(propagation=Propagation.NEVER)
 
 ![image](https://user-images.githubusercontent.com/55322459/179401967-3bd547dd-4c2f-46d6-96a0-dd17fe338f4f.png)
  - 이미 실행되는 트랜잭션이 없다면 실행하려는 메서드를 실행하지만, 기존에 실행되는 트랜잭션이 존재한다면 예외를 발생 시킨다.
 
 __요약__ : 트랜잭션을 사용하지 않도록 강제한다. 이미 진행 중인 트랜잭션도 존재하면 안된다. 예외를 발생 시킨다.
 
-#### 🔶 6. @Transactional(propagation=Propagation.NESTED)
+#### 🔶 7. @Transactional(propagation=Propagation.NESTED)
 
 ![image](https://user-images.githubusercontent.com/55322459/179401950-7e3cccdc-f08d-43ea-908c-0da6192254e0.png)
  - 트랜잭션1을 실행하고 트랜잭션2가 실행되는경우 Required와 다르게 트랜잭션1이 실행되다가 문제를 일으키면 트래잭션1과 2모두 롤백된다.
