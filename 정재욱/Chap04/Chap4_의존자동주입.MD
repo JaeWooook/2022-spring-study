@@ -265,7 +265,248 @@ public class MemberListPrinter {
 - MemberSummaryPrinter 클래스는 MemberPrinter 클래스를 상속 받기 때문에 사용할 수 있다.
 
 ### @Autowired 애노테이션의 필수 여부
+```java
+public class MemberPrinter {
+    private DateTimeFormatter dateTimeFormatter;
 
+    public MemberPrinter() {
+        dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy년 MM월 dd일");
+    }
+
+    public void print(Member member) {
+        if (dateTimeFormatter == null) {
+            System.out.printf(
+                    "회원 정보: 아이디=%d, 이메일=%s, 이름=%s, 등록일=%tF\n",
+                    member.getId(), member.getEmail(),
+                    member.getName(), member.getRegisterDateTime());
+        } else {
+            System.out.printf(
+                    "회원 정보: 아이디=%d, 이메일=%s, 이름=%s, 등록일=%s\n",
+                    member.getId(), member.getEmail(),
+                    member.getName(),
+                    dateTimeFormatter.format(member.getRegisterDateTime()));
+        }
+    }
+// 빈객체가 없는 경우 에러를 발생시킬 수 있다.
+    @Autowired
+    public void setDateFormatter(DateTimeFormatter dateTimeFormatter) {
+        this.dateTimeFormatter = dateTimeFormatter;
+    }
+}
+```
+ - dateTimeFormatter 필드가 null이면 날짜 형식을 %tF로 출력하고 이 필드가 null이 아니면 dateTimeFormatter를 이용해서 날짜형식을 맞추는 print()메서드다.
+ - print() 메서드는 dateTimeFormatter가 null인 경우에도 알맞게 동작한다.
+ - 반드시 setDateFormatter()를 통해서 의존 객체를 주입할 필요는 없다.
+ - setDateFormatter()에 주입할 빈이 존재하지 않아도 MemberPrinter가 동작하는데는 문제가 없다.
+ - __하지만__ @Autowired 애노테이션은 기본적으로 @Autowired 애노테이션을 붙인 타입에 해당하는 빈이 존재하지 않으면 익셉션을 발생한다.
+ - 따라서 setDateFormatter() 메서드에서 필요로 하는 DateTimeFormatter 타입의 빈이 존재하지 않으면 익셉션이 발생한다.
+ - __MemberPrinter는 setDateFormatter()메서드에 자동 주입할 빈이 존재하지 않으면__ 익셉션이 발생하기 보다는 그냥 dateTimeFormatter 필드가 null이면 된다.
+
+#### 🔽 자동 주입할 대상이 필수가 아닌경우의 속성값! 1
+```java
+//첫번째 방법
+public class MemberPrinter {
+    ...//필드
+    @Autowired(required = false)
+    public void setDateFormatter(DateTimeFormatter dateTimeFormatter) {
+        this.dateTimeFormatter = dateTimeFormatter;
+    }
+}
+```
+
+```java
+//첫번째 방법 필드에서
+public class MemberPrinter {
+    @Autowired(required=false)
+    private DateTimeformatter dateTimeFormatter;
+    
+    public void print(Member member) {
+        ...
+    }
+}
+```
+ - 주입할 대상이 필수가 아닌 경우에는 required속성을 false로 한다.
+ - 이렇게 하면 매칭되는 빈이 없어도 익셉션이 발생하지 않으며 자동 주입을 수행하지 않는다.
+ - 위의 예시는 DateTimeFormatter 빈이 존재하지 않으면 주입을 하지않고, setDateFormmatter 메서드를 실행하지 않는다.
+
+####  🔽 스프링 5버전 부터의 자동 주입할 대상이 필수가 아닌경우의 속성 처리 2 ✅
+```java
+//두번째 방법
+public class MemberPrinter {
+    ...//필드
+    @Autowired
+    public void setDateFormatter(Optional<DateTimeFormatter> formatterOpt) {
+        if (formatterOpt.isPresent()) {
+            this.dateTimeFormatter = formatterOpt.get();
+        } else {
+            this.dateTimeFormatter = null;
+        }
+    }   
+}
+``` 
+```java
+//두번째 방법 필드에서
+public class MemberPrinter {
+    @Autowired
+    private Optional<DateTimeformatter> formatterOpt;
+    
+    public void print(Member member) {
+        DateTimeFormatter dateTimeFormatter = formatterOpt.orElse(null);
+        if(dateTimeFormatter == null) {
+            ...
+        } else {
+            ...//여기에서 사용하는것이 정상적일 것
+        }
+    }
+}
+```
+ - 자바 8의 Optional을 사용한다.
+ - 자동 주입 대상 타입이 Optional인 경우, 일치하는 빈이 존재하지 않으면 값이 없는 Optional을 인자로 전달하고 __(익셉션이 발생하지 않는다.)__
+ - "formatterOpt.isPresent()"를 이용해서 true이면 값이 존재하므로 dateTimeFormatter를 필드에 할당한다.
+ - 즉, DateTimeFormatter 타입 빈을 주입 받아 dateTimeFormatter필드에 할당한다.
+ - 값이 존재하지 않으면 주입 받은 빈 객체가 없으므로 dateTimeFormatter 필드에 null을 할당한다.
+
+#### 🔽 @Nullable 애노테이션을 이용한 방법 3
+
+```java
+//세번째 방법
+public class MemberPrinter {
+    ...//필드
+    @Autowired
+    public void setDateFormatter(@Nullable DateTimeFormatter dateTimeFormatter) {
+        this.dateTimeFormatter = dateTimeFormatter;
+    }
+}
+```
+```java
+//세번째 방법 필드에서
+public class MemberPrinter {
+    @Autowired
+    @Nullable
+    private DateTimeformatter dateTimeFormatter;
+
+    public void print(Member member) {
+        ...
+    }
+}
+```
+- @Nullable 애노테이션을 의존 주입 대상 파라미터에 붙이면, 스프링 컨테이너는 세터 메서드를 호출할 때 자동 주입할 빈이 존재하면 해당 빈을 인자로 전달하고,
+- 존재하지 않으면 인자로 null을 전달한다.
+
+#### ✅ @Nullable vs @Autowired
+ - @Nullable 애노테이션을 사용하면 자동 주입할 빈이 존재하지 않아도 메서드가 호출된다.
+ - @Autowired 애노테이션의 경우 required 속성이 false인데 주입할 대상의 빈이 존재하지 않으면 세터 메서드를 호출하지 않는다.
+ 
 #### 생성자 초기화와 필수 여부 지정 방식 동작 이해
+>  @Nullable 과 @Autowired(required = false) 의 차이점
+ - 일치하는 빈이 없으면 값 할당 자체를 하지않는 @Autowired(required=false)
+ - @Nullable 애노테이션을 사용하면 일치하는 빈이 없을 때 null값을 할당한다.
+ - Optional 타입은 매칭 되는 빈이 없으면 값이 없는 Optional을 할당한다.
+ - ✅ __기본 생성자에서 자동 주입 대상이 외는 필드를 초기화할 때는 이 점에 유의해야한다.__
+
+```java
+public class MemberPrinter {
+	private DateTimeFormatter dateTimeFormatter;
+	
+	public MemberPrinter() {//생성자에서 필드값을 초기화 해준다.
+		dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy년 MM월 dd일");
+	}
+	
+	public void print(Member member) {
+		if (dateTimeFormatter == null) {
+			System.out.printf(
+					"회원 정보: 아이디=%d, 이메일=%s, 이름=%s, 등록일=%tF\n", 
+					member.getId(), member.getEmail(),
+					member.getName(), member.getRegisterDateTime());
+		} else {
+			System.out.printf(
+					"회원 정보: 아이디=%d, 이메일=%s, 이름=%s, 등록일=%s\n", 
+					member.getId(), member.getEmail(),
+					member.getName(), 
+					dateTimeFormatter.format(member.getRegisterDateTime()));
+		}
+	}
+	
+	@Autowired(required = false)
+	public void setDateFormatter(DateTimeFormatter dateTimeFormatter) {
+		this.dateTimeFormatter = dateTimeFormatter;
+	}
+    // 출력 : 2018년 01월 02일 null값 전달 X
+
+	@Autowired
+	public void setDateFormatter(Optional<DateTimeFormatter> formatterOpt) {
+		if (formatterOpt.isPresent()) {
+			this.dateTimeFormatter = formatterOpt.get();
+		} else {
+			this.dateTimeFormatter = null;
+		}
+	}
+	
+	@Autowired
+	public void setDateFormatter(@Nullable DateTimeFormatter dateTimeFormatter) {
+		this.dateTimeFormatter = dateTimeFormatter;
+	}
+	// 출력 : 2018-01-02 null값 전달 O
+}
+```
+- @Autowired(required = false)인 경우는 빈이 존재하지않을 때 __필드나 메서드에 null값을 전달하지 않는다.__
+- 그래서 기본 생성자에서 초기화한 DateTimeFormatter의 형식으로 날짜를 출력한다.
+- ✅ __하지만__ @Nullable인 경우는 __필드나 메서드에 null값을 전달함으로__ 생성자에서 dateTimeFormatter를 초기화 해도 setDateFormatter() 메서드가 null을 전달받아 dateTimeFormatter 필드가 다시 null로 바뀐다.
 
 ### 자동 주입과 명시적 의존 주입 간의 관계
+> 설정 클래스에서 의존을 주입했는데 자동 주입이 대상이라면?
+
+#### AppCtx 설정 클래스의 infoPrinter() 메서드 예시
+```java
+@Configuration
+public class AppCtx {
+
+    ...
+	
+	@Bean
+	@Qualifier("printer")
+	public MemberPrinter memberPrinter1() {
+		return new MemberPrinter();
+	}
+	
+	@Bean
+	@Qualifier("summaryPrinter")
+	public MemberSummaryPrinter memberPrinter2() {
+		return new MemberSummaryPrinter();
+	}
+	
+	@Bean
+	public MemberListPrinter listPrinter() {
+		return new MemberListPrinter();
+	}
+	
+	@Bean
+	public MemberInfoPrinter infoPrinter() {
+		MemberInfoPrinter infoPrinter = new MemberInfoPrinter();
+        //memberPrinter2 빈을 주입
+        infoPrinter.setPrinter(memberPrinter2());
+		return infoPrinter;
+	}
+    ...
+}
+```
+ - infoPrinter.setPrinter(memberPrinter2()) 코드를 통해서 memberPrinter2 빈을 주입하고 있다.
+ - memberPrinter2 빈은 MemberSummaryPrinter 객체이므로 이메일과 이름만 출력한다.
+ - __하지만__ 회원 전체의 정보를 보여준다. memberPrinter1 빈을 사용해서 회원 정보를 출력한 것이다.
+#### 해당 세터 메서드의 한정자와 자동 주입 애노테이션을 통해서 알아서 빈을 찾아주는 예시
+```java
+public class MemberInfoPrinter {
+    ...
+    
+    @Autowired
+    @Qualifier("printer")
+    public void setPrinter(MemberPrinter printer) {
+        this.printer = printer;
+    }
+}
+```
+ - __즉__ AppCtx(설정클래스) 클래스에서 세터 메서드를 통해 의존을 주입해도 해당 세터 메서드에 @Autowired 애노테이션이 붙어 있으면 자동 주입을 통해서 일치하는 빈을 주입한다.
+ - __따라서__ @Autowired 애노테이션을 사용했다면, AppCtx(설정클래스) 클래스에서 객체를 주입하기 보다는 스프링이 제공하는 자동 주입 기능을 사용하는 편이 낫다.
+
+> 의존 자동주입과 수동주입을 함께 사용하는 것도 바람직하지 않다. 
+> 자동 주입을 사용한다면 일관성있게 지속적으로 @Autowired를 이용한 자동 주입을 사용하는 것을 권장한다.
