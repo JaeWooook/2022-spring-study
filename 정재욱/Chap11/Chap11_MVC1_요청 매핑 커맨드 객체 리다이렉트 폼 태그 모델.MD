@@ -225,3 +225,231 @@ public class RegisterController {
  - fasle값이라면 "/step1"을 리턴해 다시 약관 동의 폼을 보여준다.
 
 ### 리다이렉트 처리
+```java
+	@GetMapping("/register/step2")
+	public String handleStep2Get() {
+		return "redirect:/register/step1";
+	}
+```
+ - 기존의 코드는 @PostMapping이기 때문에 url을 입력하는 방식으로는 접근할 수 없다.
+ - HTTP Status 405 에러를 띄워주는 방식 보다는 리다이렉트를 이용한 페이지 이동을 돕기위해
+ - @GetMapping으로 접근하였을 때 "redirect:/register/step1" 페이지로 이동 시켜준다.
+ - 리다이렉트를 실행 시켜주는 방법으로는 redirect:경로를 뷰 이름으로 리턴하면 된다.
+ - redirect:/register/step1을 사용하면 이동 경로가 "/"로 시작하므로 실제 리다이렉트할 경로는 웹어플리케이션 경로인 "/sp5-chap11"과 "/register/step1"을 연결한 /sp5-chap11/register/step1가 된다.
+ - "/"로 시작하지 않으면 현재 경로를 기준으로 상대 경로를 사용한다. 예를 들어 "redirect:step1"을 리턴 한다면 요청 경로인 "http://localhost:8080/sp5-chap11/register/step2"를 기준으로 상대 경로인 "http://localhost:8080/sp5-chap11/register/step1"을 리다이렉트 경로로 사용한다.
+ - redirect:http://localhost:8080/sp5-chap11/register/step1과 같이 완전한 URL을 사용하면 해당 경로로 리다이렉트한다.
+
+### 커맨드 객체를 이용해서 요청 파라미터 사용하기
+```java
+@PostMapping("/register/step3")
+	public String handleStep3(HttpServletRequest request) {
+		String email = request.getParameter("email");
+        String name = request.getParameter("name");
+        String password = request.getParameter("password");
+        String confirmPassword = request.getParameter("confirmPassword");
+        
+        RegisterRequest regReq = new RegisterRequest();
+        regReq.setEmail(email);
+        regReq.setName(name);
+        ...
+	}
+```
+ - 위 코드가 올바르게 동작하지만, 요청 파라미터 개수가 증가할 때마다 handleStep3()메서드의 코드 길이도 함께 길어지는 단점이 있다.
+
+> 스프링은 이러한 불편함을 줄이기 위해 요청 파라미터의 값을 커맨드(command) 객체에 담아주는 기능을 제공한다.
+> 
+> 예를 들어 이름이 name인 요청 파라미터의 값을 커맨드 객체의 setName() 메서드를 사용해서 커맨드 객체에 전달하는 기능을 제공한다.
+> 요청 파라미터의 값을 전달받을 수 있는 세터 메서드를 포함하는 객체를 커맨드 객체로 사용하면 된다.
+
+```java
+@PostMapping("/register/step3")
+	public String handleStep3(RegisterRequest regReq) {
+        ...
+	}
+```
+ - RegisterRequest 클래스에는 setEmail(), setName(), setPassword(), setConfirmPassword() 메서드가 있다.
+ - 스프링은 메서드를 사용해서 email, name, password, confirmPassword 요청 파라미터의 값을 커맨드 객체에 복사한 뒤 regReq 파라미터로 전달한다.
+ - 스프링 MVC가 handleStep3() 메서드에 전달할 RegisterRequest 객체를 생성하고 그 객체의 세터 메서드를 이용해서 일치하는 요청 파라미터의 값을 전달한다.
+
+```java
+    private MemberRegisterService memberRegisterService;
+    
+    public void setMemberRegisterService(
+            MemberRegisterService memberRegisterService) {
+            this.memberRegisterService = memberRegisterService;
+            }
+
+	@PostMapping("/register/step3")
+	public String handleStep3(RegisterRequest regReq) {
+		try {
+			memberRegisterService.regist(regReq);
+			return "register/step3";
+		} catch (DuplicateMemberException ex) {
+			return "register/step2";
+		}
+	}
+```
+ - MemberRegisterService를 이용해서 회원 가입을 처리한다.
+ - 회원가입에 성공하면 뷰 이름으로 "register/step3"를 리턴하고, 이미 동일한 이메일 주소를 가진 회원 데이터가 존재하면 뷰 이름으로 "register/step2"를 리턴한다.
+
+```java
+	@Autowired
+	private MemberRegisterService memberRegSvc;
+
+	@Bean
+	public RegisterController registerController() {
+		RegisterController controller = new RegisterController();
+		controller.setMemberRegisterService(memberRegSvc);
+		return controller;
+	}
+```
+ - RegisterController 클래스는 MemberRegisterService 타입의 빈을 의존하므로 ControllerConfig.java 파일에 의존 주입을 설정한다.
+
+### 뷰 JSP 코드에서 커맨드 객체 사용하기
+스프링 MVC는 커맨드 객체의 (첫 글자를 소문자로 바꾼) 클래스 이름과 동일한 속성 이름을 사용해서 커맨드 객체를 뷰에 전달한다.
+
+```java
+@PostMapping("/register/step3")
+	public String handleStep3(RegisterRequest regReq) {
+        ...
+	}
+```
+
+```html
+<p><strong>${registerRequest.name}님</strong> 
+        회원 가입을 완료했습니다.</p>
+```
+ - 커맨드 객체의 클래스 이름이 RegisterRequest인 경우 JSP 코드는 registerRequest라는 이름을 사용해서 커맨드 객체에 접근할 수 있다.
+
+### @ModelAttribute 어노테이션으로 커맨드 객체 속성 이름 변경
+```java
+@PostMapping("/register/step3")
+	public String handleStep3(@ModelAttribute("formData") RegisterRequest regReq) {
+        ...
+	}
+```
+ - 커맨드 객체에 접근할 때 사용할 속성 이름을 변경하고 싶다면 커맨드 객체로 사용할 파라미터에 @ModelAttribute 어노테이션을 적용한다.
+ - 위와 같은 코드로 작성하면 모델에서 사용할 속성 이름을 값으로 설정해준다.
+ - 뷰 코드에서 "formData"라는 이름으로 커맨드 객체에 접근할 수 있다.
+
+### 커맨드 객체와 스프링 폼 연동
+```html
+<input type="text" name="email" id="email" value="${registerRequest.email}">
+```
+ - 회원 정보에 대한 입력 폼에서 다시 페이지를 띄울 때 여태 입력했던 값이 날라가지 않고, 커맨드 객체의 값을 폼에 채워주면 다시 입력하는 불편함을 해소한다.
+ 
+### 컨트롤러 구현 없는 경로 매핑
+ > 첫 화면은 단순히 환영 문구와 회원 가입을 위한 링크만 제공한다면, 이를 위한 컨트롤러 클래스는 특별히 처리할 것이 없기 때문에 단순히 뷰 이름만 리턴하도록 구현된다.
+> 
+> 이러한 특별한 로직이 없는 컨트롤러 클래스를 만드는것은 별로 바람직하지 못하다.
+> 
+
+```java
+@Override
+public void addViewControllers(ViewControllerRegistry registry) {
+        registry.addViewController("/main").setViewName("main");
+        }
+```
+ - WebMvcConfigurer 인터페이스의 addViewController() 메서드를 사용하면 이런 코드를 없앨 수 있다.
+ - addViewController() 메서드를 오버라이딩해서 재정의 하면 컨트롤러 구현없이 요청 경로와 뷰 이름을 연결할 수 있다.
+
+### 주요 에러 발생 상황
+#### 요청 매핑 어노테이션과 관련된 주요 익셉션
+ > 404 에러
+
+ - 요청 경로를 처리할 컨트롤러가 존재하지 않거나 Web MvcConfigurer를 이용한 설정이 없을 때 발생한다.
+ - 요청 경로가 올바른지
+ - 컨트롤러 설정한 경로가 올바른지
+ - 컨트롤러 클래스를 빈으로 등록했는지
+ - 컨트롤러 클래스에 @Controller 어노테이션을 적용했는지
+ - 뷰 이름에 해당하는 JSP파일이 없어도 404에러가 발생하지만 JSP파일 경로는 출력된다는 차이가 있다.
+
+ > 405 에러
+ - 지원하지 않는 전송 방식(method)를 사용한 경우 405에러가 발생한다.
+ - EX) POST방식만 처리하는 요청 경로를 GET방식으로 연결하면 405에러가 발생한다.
+
+#### @RequestParam이나 커맨드 객체와 관련된 주요 익셉션
+ > 400 에러
+
+```java
+@PostMapping("/register/step2")
+public String handleStep2(
+        //필수로 존재해야하고 기본값은 없다.
+        @RequestParam("agree") Boolean agree, Model model) {
+        ...
+        }
+```
+ - @RequestParam 어노테이션을 필수로 설정하고 기본값을 지정하지 않았다
+ - @RequestParam 어노테이션을 처리하는 과정에서 필수인 "agree" 파라미터가 존재하지 않는다는 익셉션이 발생하게 된다.
+ - 스프링 MVC는 이 익셉션이 발생하면 400에러를 응답으로 전송한다.
+ - 400에러는 요청 파라미터의 값을 커맨드 객체에 복사하는 과정에서도 동일하게 발생한다.
+ - 커맨드 객체의 프로퍼티가 int 타입인데 요청 파라미터의 값이 "abc"라면, "abc"를 int타입으로 변환할 수 없기 때문에 400 에러가 발생한다.
+ - "true" -> "true1"로 변경하면 true1값은 boolean으로 변경할 수 없기 때문에 400 에러가 발생한다.
+
+### 커맨드 객체: 중첩 콜렉션 프로퍼티
+> Respondent.java
+
+```java
+package survey;
+
+public class Respondent {
+
+	private int age;
+	private String location;
+
+	public int getAge() {
+		return age;
+	}
+
+	public void setAge(int age) {
+		this.age = age;
+	}
+
+	public String getLocation() {
+		return location;
+	}
+
+	public void setLocation(String location) {
+		this.location = location;
+	}
+
+}
+```
+> AnsweredData.java
+
+```java
+package survey;
+
+import java.util.List;
+
+public class AnsweredData {
+
+	private List<String> responses;
+	private Respondent res;
+
+	public List<String> getResponses() {
+		return responses;
+	}
+
+	public void setResponses(List<String> responses) {
+		this.responses = responses;
+	}
+
+	public Respondent getRes() {
+		return res;
+	}
+
+	public void setRes(Respondent res) {
+		this.res = res;
+	}
+
+}
+```
+ - Respondent 클래스는 응답자 정보를 담는다.
+ - AnsweredData 클래스는 설문 항목에 대한 답변과 응답자 정보를 함께 담는다.
+
+### Model을 통해 컨트롤러에서 뷰에 데이터 전달하기
+
+#### ModelAndView를 통한 뷰 선택과 모델 전달
+
+#### GET방식과 POST방식에 동일 이름 커맨드 객체 사용하기
