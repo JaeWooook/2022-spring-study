@@ -1,0 +1,319 @@
+Validator,Errors,
+
+유효성 검사
+웹 브라우저 : 자바스크립트로 웹서버에 전송하기 전 검사한다.
+웹 서버: 전달 받은 요청 파라미터를 검사한다.
+
+스프링의 유효성 검사
+org.springframework.validation.Validator 인터페이스는 스프링이 제공하는 객체 검증, 에러 메세지 지원 등의 기능을 사용할 수 있다.
+
+특히 컨트롤러에서 커맨드 객체의 값을 검증할때 Validator가 유용하다.
+
+유효성 검증을 수행할 클래스를 만들고 Validator 인터페이스를 구현한다. 그리고 아래 2개 메서드를 오버라이딩한다.
+
+-Validator 인터페이스
+
+supports() - 객체의 타입 검증
+validate() - 자바빈의 속성 값 검증
+
+위 메서드에서 validate() 메서드의 target은 검증할 객체, errors는 검증 객체가 올바르지 않을 경우 에러 정보를 저장한다.
+BindingResult 또는 Errors 파라미터는 반드시 커맨드 객체 바로 뒤에 위치해야한다.
+BindingResult는 Errors 인터페이스를 상속 받은 타입으로 둘 중 하나를 사용하면 된다.
+
+-BindingResult와 Errors 인터페이스의 주요 메서드
+reject() - 객체에 대한 에러코드 및 메시지, 메시지 인자 전달
+rejectValue() - 필드(객체의 프로퍼티)에 대한 에러정보 추가(에러코드 및 메시지, 메시지 인자 전달)
+?????에러코드는 무엇일까?
+In computer programming, a return code or an error code is a numeric or alphanumeric code 
+that is used to determine the nature of an error and why it occurred.[1]
+ They are also commonly found in consumer electronics and devices when they attempt to do something they cannot do (e.g., dividing by zero) 
+or fail to do and they can be passed off to error handlers that determine what action to take.
+에러가 발생한 이유를 HTTP상태코드가 아닌 프로그래머가 정의한 에러종류를 구분하는 에러코드
+에러가 발생했을 떄 에러 메시지와 함께 나타낸다 . 에러코드에 맞는 에러메시지를 출력한다
+Error E74 on the Xbox 360, symbolizing a hardware failure.
+
+
+boolean hasErrors() - 에러 발생 여부 확인
+int getErrorCount() - 에러 갯수 리턴
+boolean hasGlobalErrors()
+int getGlobalErrorCount()
+
+
+
+ValidationUtils의 메서드
+
+rejectIfEmptyOrWhitespace(Errors errors,
+
+                                             java.lang.String field,
+
+                                             java.lang.String errorCode)
+
+
+
+errors - the Errors instance to register errors on
+
+field - the field name to check
+
+errorCode - the error code, interpretable as message key
+
+
+
+※다른 메서드는 링크에서 확인:
+
+https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/validation/ValidationUtils.html
+
+
+
+
+
+import org.springframework.validation.Errors;
+
+import org.springframework.validation.ValidationUtils;
+
+import org.springframework.validation.Validator;
+
+
+
+public class MemberRegistValidator implements Validator {
+
+
+
+	@Override
+
+	//MemberRegistValidator 클래스는 MemberRegistRequest 타입의 객체를 지원한다.
+
+	public boolean supports(Class<?> clazz) {
+
+		return MemberRegistRequest.class.isAssignableFrom(clazz);
+
+	}
+
+
+
+	@Override
+
+	public void validate(Object target, Errors errors) {
+
+		//객체 검사 전 타입 변환
+
+		MemberRegistRequest regReq = (MemberRegistRequest) target;
+
+
+
+		//if문으로 검증 후 결과를 errors에 저장한다.
+
+		if (regReq.getEmail() == null || regReq.getEmail().trim().isEmpty())
+
+			//"email" 프로퍼티 값이 검증 결과와 에러코드"required"를 errors 객체에 저장한다.  에러코드는 메시지 출력시 사용 된다.
+
+			errors.rejectValue("email", "required");
+
+
+
+		//ValidationUtils 클래스의 메소드로 간단하게 구현할 수 있다.
+
+		ValidationUtils.rejectIfEmptyOrWhitespace(errors, "name", "required");
+
+		ValidationUtils.rejectIfEmptyOrWhitespace(errors, "password", "required");
+
+		ValidationUtils.rejectIfEmptyOrWhitespace(errors, "confirmPassword", "required");
+
+
+
+		if (regReq.hasPassword()) {
+
+			if (regReq.getPassword().length() < 5)
+
+				errors.rejectValue("password", "shortPassword");
+
+			else if (!regReq.isSamePasswordConfirmPassword())
+
+				errors.rejectValue("confirmPassword", "notSame");
+
+		}
+
+		Address address = regReq.getAddress();
+
+		if (address == null) {
+
+			errors.rejectValue("address", "required");
+
+		} else {
+
+			errors.pushNestedPath("address");
+
+			try {
+
+				ValidationUtils.rejectIfEmptyOrWhitespace(errors, "address1", "required");
+
+				ValidationUtils.rejectIfEmptyOrWhitespace(errors, "address2", "required");
+
+			} finally {
+
+				errors.popNestedPath();
+
+			}
+
+		}
+
+		ValidationUtils.rejectIfEmptyOrWhitespace(errors, "birthday", "required");
+
+	}
+
+
+
+}
+
+
+BindingResult의 hasErrors() 메서드는 검증 결과 오류가 있다면 true를 리턴한다. 
+
+
+
+-컨트롤러 클래스
+
+
+
+@RequestMapping(value = "/newevent/step2", method = RequestMethod.POST)
+
+	public String step2(@ModelAttribute("eventForm") EventForm formData, BindingResult result) {
+
+
+
+//검증 클래스 객체를 생성하고 
+
+		new EventFormStep1Validator().validate(formData, result);
+
+		if (result.hasErrors())
+
+			return EVENT_CREATION_STEP1;
+
+		return EVENT_CREATION_STEP2;
+
+	}
+
+
+
+
+
+
+
+
+
+에러 코드와 메시지
+
+에러 코드에 알맞는 메시지를 가져온다.
+
+방법   ? 이거 어디에 작성한거 ? 다들 어디에 작성하는건지를 모르겄네 ㅎ여튼간에
+1. MessageSource를 스프링 설정에 등록한다.
+<bean id="messageSource"
+
+		class="org.springframework.context.support.ResourceBundleMessageSource">
+
+		<property name="basenames">
+
+			<list>
+
+			<!-- message 패키지의 error.properties 파일 -->
+
+				<value>message.error</value>
+
+			</list>
+
+		</property>
+
+		<property name="defaultEncoding" value="UTF-8" />
+
+</bean>
+
+
+
+
+
+2. MessageSource가 가져올 메시지를 담은 프로퍼티 파일을 작성한다.
+
+
+
+-error.properties
+
+required=필수 항목입니다.
+
+required.email=이메일을 입력하세요.
+
+minlength=최소 {1} 글자 이상 입력해야 합니다.
+
+maxlength=최대 {1} 글자까지만 입력해야 합니다.
+
+invalidIdOrPassword.loginCommand=아이디와 암호가 일치하지 않습니다.
+
+invalidPassword=암호가 일치하지 않습니다.
+
+shortPassword=암호 길이가 짧습니다.
+
+notSame.confirmPassword=입력한 값이 암호와 같지 않습니다.
+
+typeMismatch.birthday=날짜 형식이 올바르지 않습니다.
+
+
+
+NotEmpty=필수 항목입니다.
+
+NotEmpty.currentPassword=현재 암호를 입력하세요.
+
+Email=올바른 이메일 주소를 입력해야 합니다.
+
+
+
+badBeginDate=이벤트 시작일이 잘못되었습니다.
+
+badEndDate=이벤트 종료일이 잘못되었습니다.
+
+typeMismatch.beginDate=시작 날짜 형식이 올바르지 않습니다.
+
+typeMismatch.endDate=종료 날짜 형식이 올바르지 않습니다.
+
+
+
+
+
+3. JSP와 같은 뷰 단에서 스프링이 제공하는 태그로 에러 메시지를 출력한다. 
+
+<form:form> 태그에 검증할 커맨드 객체의 이름 입력
+
+<form:errors> path 속성에 에러코드를 입력(글로벌 에러코드를 "이름"을 넣고 에러 코드는 "커맨드객체명.이름"을 쓴다.)
+
+
+
+
+
+<form:form commandName="modReq">
+
+<input type="hidden" name="id" value="${modReq.id}" />
+
+<label for="email">이메일</label>: 
+
+<input type="text" name="email" id="email" value="${modReq.email}"/> 
+
+<form:errors path="email"/><br/>
+
+
+
+또는
+
+
+
+<spring:hasBindErrors> name 속성에 커맨드객체명
+
+<form:errors> path 속성에 에러코드를 입력
+
+
+
+<spring:hasBindErrors name="memberInfo" />
+
+<form method="post">
+
+<label for="email">이메일</label>: 
+
+<input type="text" name="email" id="email" value="${memberInfo.email}"/>
+
+<form:errors path="memberInfo.email"/> <br/>
+
