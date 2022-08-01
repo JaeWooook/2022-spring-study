@@ -117,7 +117,7 @@ public class ControllerConfig {
 }
 ```
 
-####뷰 이름과 JSP파일과의 연결 MvcConfig클래스
+#### 뷰 이름과 JSP파일과의 연결 MvcConfig클래스
 ```java
 	@Override
 	public void configureViewResolvers(ViewResolverRegistry registry) {
