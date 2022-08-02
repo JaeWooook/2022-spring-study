@@ -447,6 +447,20 @@ public class AnsweredData {
 ```
  - Respondent 클래스는 응답자 정보를 담는다.
  - AnsweredData 클래스는 설문 항목에 대한 답변과 응답자 정보를 함께 담는다.
+ - AnsweredData 클래스는 리스트 타입의 프로퍼티 존재
+ - responses 프로퍼티는 String 타입의 값을 갖는 List 콜렉션이다.
+ - 중첩 프로퍼티를 갖는다.
+ - res 프로퍼티는 Respondent 타입이며, res 프로퍼티는 다시 age와 location 프로퍼티를 갖는다.
+ - 이를 중첩된 형식으로 표시하면 res.age 프로퍼티나 res.location프로퍼티로 표현할 수 있다.
+
+#### 스프링 MVC 커맨드 객체가 리스트타입 & 중첩 프로퍼티를 가진 경우
+> 요청 파라미터의 값을 알맞게 커맨드 객체에 설정해주는 기능을 제공, 규칙
+
+ - HTTP 요청 파라미터 이름이 "프로퍼티이름[인덱스]" 형식이면 List 타입 프로퍼티의 값 목록으로 처리한다.
+ - HTTP 요청 파라미터 이름이 "프로퍼티이름.프로퍼티이름"과 같은 형식이면 중첩 프로퍼티 값을 처리한다.
+
+ex) 이름이 responses이고 List 타입인 프로퍼티를 위한 요청 파라미터의 이름으로 "responses[0]", "responses[1]"을 사용하면 각각의 0번 인덱스와 1번 인덱스의 값으로 사용된다.
+중첩 프로퍼티의 경우 파라미터 이름을 "res.name"으로 지정하면 commandObj.getRes().setName(request.getParameter("res.name"));과 같은 방식으로 커맨드 객체에 파라미터의 값을 설정한다.
 
 ### Model을 통해 컨트롤러에서 뷰에 데이터 전달하기
 
