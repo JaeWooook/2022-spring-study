@@ -80,7 +80,135 @@ messageSource.getMessage("register.done",args,Locale.KOREA);
 - JSP에서 에러 코드로부터 메시지를 출력
 
 ## 커맨드 객체 검증과 에러 코드 지정
+스프링 MVC에서 커맨드 객체의 값이 올바른지 검사하려면 다음의 두 인터페이스를 사용한다.
+- org.springframework.validation.Validator
+- org.springframework.validation.Errors
+```java
+public interface Validator{
+	boolean supports(Class<?> clazz);
+    void validate(Object target, Errors errors);
+}
+```
+supports()는 Validator가 검증할 수 있는 타입인지 검사한다.
+validate() 첫번째 파라미터로 전달받은 객체를 검증하고 오류 결과를 Errors에 담는 기능을 한다.
 
-## Errors와 ValidationUtils 클래스의 주요 메서드
+- 검사 대상 객체가 올바른지 검사
+- 올바르지 않으면 Errors의 rejectValue() 메서드를 이용해서 에러 코드 저장
+
+Errors의 첫번째 파라미터로 프로퍼티 이름을 전달받고, 두번째 파라미터로 에러코드를 전달받는다. "email" 프로퍼티 값이 존재하지 않으면 에러 코드로 "required"를 추가한다.
+```java
+public class RegisterRequestValidator implements Validator{
+	@Override
+    public void validate(Object target, Errors errors){
+    	RegisterRequest regReq = (RegisterRequest) target;
+        if(regReq.getEmail()==null || regReq.getEmail().trim().isEmpty()){
+        	errors.rejectValue("email","required");
+        }
+        ...
+       
+		//errors 객체의 getFieldValue("password") 메서드를 실행해서
+		//커맨드 객체의 password 프로퍼티 값을 구함
+        //커맨드 객체를 직접 전달하지 않아도 값 검증 가능
+        VaildationUtils.rejectIfEmpty(erros,"password","required")
+    }
+}
+```
+validate()를 실행하는 과정에서 유효하지 않은 값이 존재하면 Errors의 rejectValue()를 실행한다. 이 메서드가 한번이라도 불리면 Errors.hasErrors()는 true를 반환한다.
+
+커맨드 객체 자체에 문제가 있을 때는 reject()를 사용한다. 아이디, 비밀번호가 잘못 입력한 경우 불일치한다는 메시지를 보여줘야 한다. 이경우 에러를 추가하기 보다 커맨드 객체 자체에 에러를 추가한다. 
+_**reject() 메서드는 개별 프로퍼티가 아닌 객체 자체에 에러 코드를 추가하므로 이 에러를 글로벌 에러라고 한다.**_
+```java
+try{
+	...
+}catch(WrongIdPasswordException ex){
+	errors.reject("notMatchingIdPassword");
+    return "login/loginForm";
+}
+```
+
+Errors 타입 파라미터는 반드시 커맨드 객체를 위한 파라미터 다음에 위치해야 한다. 그렇지 않으면 익셉션이 발생한다.
+```java
+@PostMapping              //익셉션 발생
+public String handleStep3(Errors errors, RegisterRequest regReq){
+	...
+}
+```
 
 ## 커맨드 객체의 에러 메시지 출력
+에러코드에 해당하는 메시지 코드를 찾을 때는 다음 규칙을 따른다.
+1) 에러코드.커맨트객체이름.필드명[인덱스\].필드명
+2) 에러코드.필드명
+3) 에러코드.필드타입
+4) 에러코드
+
+errors.rejectValue("email","required") 코드로 "email" 프로퍼티에 "required" 에러 코드를 추가했고 커맨드 객체 이름이 "registerRequest"이면 다음 순서대로 메세지 코드를 검색한다.
+1) required.registerRequest.email
+2) required.email
+3) required.String
+4) required
+
+# 글로벌 범위 Validator와 컨트롤러 범위 Validator
+## 글로벌 범위 Validator 설정과 @Valid 어노테이션
+글로벌 범위 Validator는 모든 컨트롤러에 적용할 수 있는 Validator이다.
+
+설정 클래스에서 WebMvcConfigurer의 getValidator()가 Validator 구현 객체를 리턴하도록 구현
+```java
+@Configuration
+@EnableWebMvc
+public class MvcConfig implements WebMvcCofigurer{
+	@Override
+    public Validator getValidator(){
+    	return new RegisterRequestValidator();
+    }
+}
+```
+스프링 MVC는 WebMvcConfigurer 인터페이스의 getValidator() 메서드가 리턴한 객체를 글로벌 범위 Validator로 사용한다. 글로벌 범위로 지정하면 @Valid 어노테이션을 사용해서 Validator를 적용할 수 있다. 
+```java
+@Controller
+public class RegisterController{
+	@PostMapping
+    public String handleStep3(@Valid RegisterRequest regReq, Errors error){
+    	...
+    }	
+}
+```
+
+## @InitBinder 어노테이션을 이용한 컨트롤러 범위 Validator
+```java
+@Controller
+public class RegisterController{
+	@PostMapping
+    public String handleStep3(@Valid RegisterRequest regReq, Errors error){
+    	...
+    }
+    @InitBinder
+    protected void initBinder(WebDataBinder binder){
+    	binder.setValidator(new RegisterRequestValidator());
+    }
+}
+```
+
+# Bean Validation을 이용한 값 검증 처리 
+@Valid 어노테이션은 Bean Validation 스펙에 정의되어 있다. 이 스펙은 @NotNull, @Digits, @Size 등의 어노테이션을 정의하고 있다. 
+
+Bean Validation이 제공하는 어노테이션을 이용해서 커맨드 객체 값을 검증하는 방법은 다음과 같다.
+- Bean Validatoin과 관련된 의존을 설정에 추가한다.
+- 커맨드 객체에 @NotNull, @Digits 등의 어노테이션을 이용해서 검증 규칙을 설정한다.
+
+```java
+public class RegisterRequest{
+	@NotNull
+    @Email
+    private String email;
+    
+    @Size(min=6)
+    private String password;
+    
+    @NotEmpty
+    private String confirmPassword;
+    
+    @NotEmpty
+    private String name;
+}
+```
+ 
