@@ -463,7 +463,21 @@ ex) 이름이 responses이고 List 타입인 프로퍼티를 위한 요청 파�
 중첩 프로퍼티의 경우 파라미터 이름을 "res.name"으로 지정하면 commandObj.getRes().setName(request.getParameter("res.name"));과 같은 방식으로 커맨드 객체에 파라미터의 값을 설정한다.
 
 ### Model을 통해 컨트롤러에서 뷰에 데이터 전달하기
-
 #### ModelAndView를 통한 뷰 선택과 모델 전달
+```java
+@Controller
+@RequestMapping("/survey")
+public class SurveyController {
 
-#### GET방식과 POST방식에 동일 이름 커맨드 객체 사용하기
+    @GetMapping
+    public ModelAndView form() {
+        List<Question> questions = createQuestions();
+        ModelAndView mv = new ModelAndView();
+        mv.addObject("questions", questions);
+        mv.setViewName("survey/surveyForm");
+        return mv;
+    }
+}
+```
+ - 뷰에 전달할 모델 데이터는 addObject() 메서드로 추가한다.
+ - 뷰 이름은 setViewName() 메서드를 이용해서 지정한다.
