@@ -1,0 +1,191 @@
+
+날짜를 이용한 회원 검색 기능
+MemberDao
+
+public class MemberDao {
+
+    ...
+
+    public List<Member> selectByRegdate(LocalDateTime from, LocalDateTime to) {
+        List<Member> results = jdbcTemplate.query("select * from MEMBER where REGDATE between ? and ? " + "order by REGDATE desc",
+                new RowMapper<Member>() {
+                    @Override
+                    public Member mapRow(ResultSet rs, int rowNum) throws SQLException {
+                        Member member = new Member(
+                                rs.getString("EMAIL"),
+                                rs.getString("PASSWORD"),
+                                rs.getString("NAME"),
+                                rs.getTimestamp("REGDATE").toLocalDateTime());
+                        return member;
+                    }
+                }, from, to);
+        return results;
+    }
+}
+커맨드 객체 Date 타입 프로퍼티 변환 처리 : @DateTimeFormat
+ListCommand
+
+public class ListCommand {
+    
+    @DateTimeFormat(pattern = "yyyyMMddHH")
+    private LocalDateTime from;
+    @DateTimeFormat(pattern = "yyyyMMddHH")
+    private LocalDateTime to;
+
+    public LocalDateTime getFrom() {
+        return from;
+    }
+
+    public void setFrom(LocalDateTime from) {
+        this.from = from;
+    }
+
+    public LocalDateTime getTo() {
+        return to;
+    }
+
+    public void setTo(LocalDateTime to) {
+        this.to = to;
+    }
+}
+커맨드 객체에 @DateTimeFormat 애노테이션이 적용되어 있으면 @DateTimeFormat에서 지정한 형식을 이용해서 문자열을 LocalDateTime 타입으로 변환한다. 여기서는 "2018030115"의 문자열을 "2018년 3월 1일 15시" 값을 갖는 LocalDateTime 객체로 변환해준다.
+
+MemberListController
+
+@Controller
+public class MemberListController {
+
+    private MemberDao memberDao;
+
+    public void setMemberDao(MemberDao memberDao) {
+        this.memberDao = memberDao;
+    }
+
+    @RequestMapping("/members")
+    public String list(@ModelAttribute("cmd") ListCommand listCommand, Model model) {
+        if (listCommand.getFrom() != null && listCommand.getTo() != null) {
+            List<Member> members = memberDao.selectByRegdate(listCommand.getFrom(), listCommand.getTo());
+            model.addAttribute("members", members);
+        }
+        return "member/memberList";
+    }
+}
+ControllerConfig
+
+@Configuration
+public class ControllerConfig {
+    ...
+    @Autowired
+    private MemberDao memberDao;
+
+    ...
+    @Bean
+    public MemberListController memberListController() {
+        MemberListController controller = new MemberListController();
+        controller.setMemberDao(memberDao);
+        return controller;
+    }
+}
+변환 에러 처리
+현재 지정한 형식은 "yyyyMMddHH"이기 때문에 "yyMMdd"만 입력하면 400에러가 난다. 400 에러 대신 폼에 알맞은 에러 메시지를 보여주자.
+
+MemberListController
+
+@Controller
+public class MemberListController {
+    ...
+
+    @RequestMapping("/members")
+    public String list(@ModelAttribute("cmd") ListCommand listCommand, Errors errors, Model model) {
+        if (errors.hasErrors()) {
+            return "member/memberList";
+        }
+        ...
+    }
+}
+요청 매핑 애노테이션 적용 메서드가 Errors 타입 파라미터를 가질 경우 @DateTimeFormat에 지정한 형식에 맞지 않으면 Errors 객체에 "typeMismatch" 에러 코드를 추가한다.
+
+변환 처리에 대한 이해
+누가 문자열을 LocalDateTime으로 변환해주는 것일까? 답은 WebDataBinder이다.
+
+스프링 MVC는 요청 매핑 애노테이션 적용 메서드와 DispatcherServlet 사이를 연결하기 위해 RequestMappingHandlerAdapter 객체를 사용한다. 이 핸들러 어댑터 객체는 요청 파라미터와 커맨드 객체 사이의 변환 처리를 위해 WebDataBinder를 이용한다.
+
+WebDataBinder는 커맨드 객체를 생성한다. 그리고 커맨드 객체의 프로퍼티와 같은 이름을 갖는 요청 파라미터를 이용해서 프로퍼티 값을 생성한다.
+
+
+
+WebDataBinder는 직접 타입을 변환하지 않고 ConversionService에 그 역할을 위임한다.
+
+@PathVariable을 이용한 경로 변수 처리
+http://localhost:8080/sp5-chap14/members/10
+ID가 10인 회원의 정보를 조회하기 위한 URL이다. 이 형식의 URL을 사용하면 각 회원마다 경로의 마지막 부분이 달라진다. 이렇게 경로의 일부가 고정되어 있지 않고 달라질 때 사용할 수 있는 것이 @PathVariable 애노테이션이다.
+
+MemberDetailController
+
+@Controller
+public class MemberDetailController {
+
+    private MemberDao memberDao;
+
+    public void setMemberDao(MemberDao memberDao) {
+        this.memberDao = memberDao;
+    }
+
+    @GetMapping("/members/{id}")
+    public String detail(@PathVariable("id") Long memId, Model model) {
+        Member member = memberDao.selectById(memId);
+        if (member == null) {
+            throw new MemberNotFoundException();
+        }
+        model.addAttribute("member", member);
+        return "member/memberDetail";
+    }
+}
+매핑 경로에 '{경로변수}'와 같이 중괄호로 쌓인 부분을 경로 변수라고 부른다. "{경로변수}"에 해당하는 값은 같은 경로 변수 이름을 지정한 @PathVariable 파라미터에 전달된다. "/members/{id}"에서 {id}에 해당하는 부분의 경로 값을 @PathVariable("id") 애노테이션이 적용된 memId 파라미터에 전달한다. 예를 들어 요청 경로가 "/members/10"이면 {id}에 해당하는 "10"이 memId에 파라미터 값으로 전달된다. memId 파라미터 타입은 Long인데, 이 경우 String 타입 값 "0"을 알맞게 Long 타입으로 변환한다.
+
+컨트롤러 익셉션 처리하기
+없는 ID를 경로변수로 사용하면 MemberNotFoundException이 발생한다. 또한 http://..//members/a라고 하면 "a"를 Long타입으로 변환할 수 없다. 타입 변환 실패에 따른 익셉션을 어떻게 처리할까?
+
+같은 컨트롤러에 @ExceptionHandler 애노테이션을 적용한 메서드가 존재하면 그 메서드가 익셉션을 처리한다. 따라서 컨트롤러에 발생한 익셉션을 직접 처리하고 싶다면 @ExceptionHandler 애노테이션을 적용한 메서드를 구현하면 된다.
+
+MemberDetailController
+
+@Controller
+public class MemberDetailController {
+
+    ...
+
+    @ExceptionHandler(TypeMismatchException.class)
+    public String handleTypeMismatchException() {
+        return "member/invalidid";
+    }
+
+    @ExceptionHandler(MemberNotFoundException.class)
+    public String handleNotFoundException() {
+        return "member/noMember";
+    }
+}
+@ExceptionHandler의 값으로 TypeMismatchException.class를 주었다. 이 익셉션이 발생하면 에러 응답을 보내는 대신 handleTypeException() 메서드를 실행한다.
+
+@ExceptionHandler 애노테이션을 적용한 메서드는 컨트롤러의 요청 매핑 애노테이션 적용 메서드와 마찬가지로 뷰 이름을 리턴할 수 있다.
+
+@ControllerAdvice를 이용한 공통 익셉션 처리
+컨트롤러 클래스에 @ExceptionHandler 애노테이션을 적용하면 해당 컨트롤러에서 발생한 익셉션만을 처리한다.
+
+여러 컨트롤러에서 동일하게 처리할 익셉션이 발생하면 @ControllerAdvice 애노테이션을 이용해서 중복을 없앨 수 있다.
+
+@ControllerAdvice("spring")
+public class CommonExceptionHandler {
+    
+    @ExceptionHandler(RuntimeException.class)
+    public String handleRuntimeException() {
+        return "error/commonException";
+    }
+}
+@ControllerAdvice 애노테이션이 적용된 클래스는 지정한 범위의 컨트롤러에 공통으로 사용될 설정을 지정할 수 있다. 위 코드는 "spring" 패키지와 그 하위 패키지에 속한 컨트롤러 클래스를 위한 공통 기능을 정의했다.
+
+@ControllerAdvice 적용 클래스가 동작하려면 해당 클래스를 스프링에 빈으로 등록해야 한다.
+
+@ExceptionHandler 적용 메서드의 우선 순위
+같은 컨트롤러에 위치한 @ExceptionHandler 메서드 중 해당 익셉션을 처리할 수 있는 메서드를 검색
+같은 클래스에 위치한 메서드가 익셉션을 처리할 수 없을 경우 @ControllerAdvice 클래스에 위치한 @ExceptionHandler 메서드를 검색
