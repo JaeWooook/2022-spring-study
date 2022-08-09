@@ -1,6 +1,5 @@
 # Chap13 MVC3
 ## 로그인 기능 구현
-/////
 로그인 성공 후 인증 상태 정보를 세션에 보관할 때 사용할 AuthInfo 클래스이다. 
 ```java
 public class AuthInfo{
@@ -21,6 +20,76 @@ public class Member{
     ...
     public boolean matchPassword(String password){
     	return this.password.equals(password);
+    }
+}
+```
+이메일과 비밀번호가 일치하는지 확인해서 AuthInfo 객체를 생성하는 AuthService 클래스이다.
+```java
+public class AuthService{
+	private MemberDao memberDao;
+   	...
+    public AuthInfo authenticate(String email, String password){
+  		Member member = memberDao.selectbyEmail(email);
+        if(member = null){
+        	throw new WrongIdPasswordException();
+        }
+        if(!member.matchPassword(password)){
+        	throw new WrongIdPasswordException();
+        }
+        return new AuthInfo(member.getId(), member.getEmail(),member.getName());
+    }	
+}
+```
+AuthService를 이용해서 로그인을 처리하는 LoginController와 폼에 입력한 값을 전달받기 위한 LoginCommand클래스와 입력된 값을 검증하는 LoginCommandValidator가 있다.
+```java
+public class LoginCommand{
+	private String email;
+    private String password;
+    private boolean rememberEmail;
+    ...
+}
+```
+```java
+public class LoginCommandValidator implements Validator{
+	@Override
+    public boolean supports(Class<?> clazz){
+    	return LoginCommand.class.isAssignableFrom(clazz);
+    }
+    
+    @Override
+    public void validate(Object target, Errors errors){
+    	Validation Utils.rejectIfEmptyOrWhitespace(errors, "email", "required");
+        ValidationUtils.rejectIfEmpty(errors, "password", "required");
+    }
+}
+```
+```java
+@Controller
+@RequestMapping("/login")
+public class LonginController{
+	private AuthService authService;
+    
+    public void setAuthService(AuthService authService){
+    	this.authService=authService;
+    }
+    
+    @GetMapping
+    public String form(LoginCommand loginCommand){
+    	new LoginCommandValidator().validate(loginCommand,errors);
+        if(errors.hasErrors()){
+        	return "login/loginForm";
+        }
+        try{
+        	AuthInfo authInfo = authService.authenticate(
+            	loginCommand.getEmail();
+                loginCommand.getPassword());
+           	//TODO 세션에 authInfo 저장해야 함
+            return "login/loginSuccess";
+        }catch(WrongIdPasswordException e){
+        	errors.reject("idPasswordNotMatching");
+            return "login/loginForm";
+        }
+       
     }
 }
 ```
@@ -107,7 +176,45 @@ public class LogoutController{
 ![](https://velog.velcdn.com/images/yh_lee/post/11e5ea65-c5b9-42cd-91ac-301e2c09ae56/image.png)LoginController는 로그인에 성공할 경우 HttpSession의 "authInfo" 속성에 인증 정보 객체를 저장한다. 따라서 로그인에 성공하면 17행 조건절이 true가 되어서 19~22행 내용이 출력된다. 
 
 ## 비밀번호 변경 기능 구현
-/////
+비밀번호 변경 컨트롤러
+```java
+@Controller
+@RequestMapping("/edit/changePassword")
+public class ChangePwdController{
+	private ChangePasswordService changePasswordService;
+    ...
+    @GetMapping
+    public String form(
+    			@ModelAttribute("command") ChangePasswordService pwdCmd
+            ){
+    	return "edit/changePwdForm";
+    }	
+    
+    @PostMapping
+    public String submit(
+    	@ModelAttribute("command") ChangePasswordService pweCmd,
+        Errors errors,
+        HttpSession session
+    				){
+    	new ChangePwdCommandValidator().validate(pwdCmd,errors)l
+        if(errors.hasError()){
+        	return "edit/changePwdForm";
+        }
+        AuthInfo authInfo = (AuthInfo) session.getAttribute("authInfo");
+        try{
+        	changePasswordService.changePassword(
+            		authInfo.getEmail(),
+                    pwdCmd.getCurrentPassword(),
+                    pwdCmd.getNewPassword());
+        	return "edit/changedPwd";
+        }catch(WrongIdPasswordException e){
+        	errors.rejectValue("currentPassword","notMatching");
+            return "edit/changePwdForm";
+        }
+    	
+    }
+}
+```
 
 ## 인터셉터 사용하기 
 로그인하지 않은 상태에서 http://localhost:8080/sp5-chap13/edit/changePassword를 입력하면 비밀번호 변경 폼이 출력된다. 로그인하지 않았는데 변경 폼이 출력되는 것은 이상하다. 그것보다 로그인하지 않은 상태에서 비밀번호 변경 폼을 요청하면 로그인 화면으로 이동시키는 것이 더 좋은 방법이다. 
