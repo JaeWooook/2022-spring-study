@@ -146,6 +146,7 @@ public class CommonExceptionHandler{
 
 1. 같은 컨트롤러에 위치한 @ExceptionHandler 메서드 중 익셉션을 처리할 수 있는 메서드 검색
 2. 같은 클래스에 위치한 메서드가 익셉션을 처리할 수 없는 경우 @ControllerAdvice 클래스에 위치한 @ExceptionHandler 메서드를 검색
+3. 
 
 ### @ExceptionHandler 적용 메서드의 파라미터와 리턴 타입
 @ExceptionHandler를 붙인 메서드는 다음 파라미터를 가질 수 있다.
