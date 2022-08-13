@@ -95,3 +95,16 @@ public class AuthService {
  - 로그인 같은 경우 익셉션이 발생하지 않는다면 로그인을 성공한것으로 인지할 수 있다.
 
 ### 컨트롤러에서의 DAO 접근
+> 서비스의 로직이없이 1개의 DAO만 접근하는 기능을 수행한다면
+> 
+> 반드시 컨트롤러는 서비스를 이용해야 한다는 압박에서 벗어나 다음과 같이 DAO에 직접 접근해도 큰 틀에서는 웹 어플리케이션의 계층 구조는 유지된다고 본다.
+
+ - 컨트롤러에서 직접 DAO에 접근하는 예시 코드
+
+```java
+@RequestMapping("/member/detail/{id}")
+public String detail(@PathVariable("id") Long id, Model model) {
+    Member member = memberDao.selectByEmail(id);
+        ...
+        }
+```
