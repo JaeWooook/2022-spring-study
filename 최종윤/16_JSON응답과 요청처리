@@ -1,0 +1,364 @@
+웹 페이지에서 Ajax를 이용해서 서버 API를 호출하는 사이트가 많다. 이들 API는 웹 요청에 대한 응답으로 HTML 대신 JSON이나 XML을 이용한다. 웹 요청에도 쿼리 문자열 대신에 JOSN이나 XML을 데이터로 보내기도 한다.
+
+JSON 개용
+{
+    "name" : "유관순",
+    "birthday" : "1902-12-16",
+    "age" : 17,
+    "related" : ["남동순", "류예도"],
+    "edu" : [
+      {
+        "title" : "이화학당보통과",
+        "year" : 1916
+      },
+      {
+        "title" : "이화학당고등과",
+        "year" : 1916
+      },
+      {
+        "title" : "이화학당고등과",
+        "year" : 1919
+      }
+    ]
+}
+JSON은 중괄호를 사용해서 객체를 표현한다. 객체는 (이름, 값) 쌍을 갖는다. 이때 이름과 값은 콜론으로 구분한다.
+
+값에는 다음이 올 수 있다.
+
+문자열, 숫자, 불리언, null
+배열
+다른 객체
+배열은 대괄호로 표현한다. 대괄호 안에 콤마로 구분한 값 목록을 갖는다. 위 예에서 related 배열은 문자열 값 목록을 갖고 있고 edu 배열은 객체를 값 목록으로 갖고 있다.
+
+Jackson 의존 설정
+Jackson은 자바 객체와 JSON 형식 문자열 간 변환을 처리하는 라이브러리이다.
+
+
+
+Jackson은 프로퍼티(get 메서드 또는 설정에 따라 필드)의 이름과 값을 JSON 객체의 (이름, 값) 쌍으로 사용한다. Person 객체의 name 프로퍼티 값이 "이름"이라고 할 때 생성되는 JSON 형식 데이터는 이름이 "name"이고 값이 "이름"인 데이터를 갖는다. 프로퍼티 타입이 배열이나 List인 경우 JSON 배열로 변환된다.
+
+@RestController로 JSON 형식 응답
+RestMemberController
+
+@RestController
+public class RestMemberController {
+
+    private MemberDao memberDao;
+    private MemberRegisterService registerService;
+
+    @GetMapping("/api/members")
+    public List<Member> members() {
+        return memberDao.selectAll();
+    }
+
+    @GetMapping("/api/members/{id}")
+    public Member member(@PathVariable Long id, HttpServletResponse response) throws IOException {
+        Member member = memberDao.selectById(id);
+        if (member == null) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return null;
+        }
+        return member;
+    }
+
+    public void setMemberDao(MemberDao memberDao) {
+        this.memberDao = memberDao;
+    }
+
+    public void setRegisterService(MemberRegisterService registerService) {
+        this.registerService = registerService;
+    }
+}
+기존 컨트롤러와 차이점은 아래와 같다.
+
+@Controller 애노테이션 대신 @RestController 애노테이션 사용
+요청 매핑 애노테이션 적용 메서드의 리턴 타입으로 일반 객체 사용
+@RestController 애노테이션을 붙인 경우 스프링 MVC는 요청 매핑 애노테이션을 붙인 메서드가 리턴한 객체를 알맞은 형식으로 변환해서 응답 데이터로 전송한다. 이때 클래스 패스에 Jackson이 존재하면 JSON 형식의 문자열로 변환해서 응답한다.
+
+@JsonIgnore를 이용한 제외 처리
+보통 암호와 같이 민감한 데이터는 응답 결과에 포함시키면 안되므로 password 데이터를 응답 결과에서 제외시켜야 한다. Jackson이 제공하는 @JsonIgnore 애노테이션을 사용하면 이를 간단히 처리할 수 있다.
+
+Member
+
+public class Member {
+
+    private Long id;
+    private String email;
+    @JsonIgnore
+    private String password;
+    private String name;
+    private LocalDateTime registerDateTime;
+
+    ...
+}
+날짜 형식 변환 처리 : @JsonFormat 사용
+Jackson에서 날짜나 시간 값을 특정한 형식으로 표현하는 가장 쉬운 방법은 @JsonFormat 애노테이션을 사용하는 것이다.
+
+Member
+
+public class Member {
+
+    private Long id;
+    private String email;
+    @JsonIgnore
+    private String password;
+    private String name;
+    @JsonFormat(shape = JsonFormat.Shape.STRING) // ISO-8601 형식으로 변환
+    private LocalDateTime registerDateTime;
+
+    ...
+}
+{
+    "id" : 1, 
+    "email" : "madvirus@madvirus.net",
+    "name", "최범균",
+    "registerDateTime" : "2018-03-01T11:07:39"
+}
+이런식으로 저장된다
+만약 ISO-8601 형식이 아닌 원하는 형식으로 변환해서 출력하고 싶다면 @JsonFormat 애노테이션의 pattern 속성을 사용한다.
+
+Member
+
+public class Member {
+
+    private Long id;
+    private String email;
+    @JsonIgnore
+    private String password;
+    private String name;
+    @JsonFormat(pattern = "yyyyMMddHHmmss")
+    private LocalDateTime registerDateTime;
+
+    ...
+}
+{
+    "id" : 1, 
+    "email" : "madvirus@madvirus.net",
+    "name", "최범균",
+    "registerDateTime" : "20180301020749"
+}
+날짜 형식 변환 처리 : 기본 적용 설정
+날짜 형식을 변환할 때 모든 대상에 @JsonFormat 애노테이션을 붙여야 한다면 상당히 귀찮다. 그래서 모든 대상에 동일한 변환 규칙을 적용할 방법이 필요하다. @JsonFormat 애노테이션을 사용하지 않고 Jackson의 변환 규칙을 모든 날짜 타입에 적용하려면 스프링 MVC 설정을 변경해야 한다.
+
+스프링 MVC는 자바 객체를 HTTP 응답으로 변환할 때 HttpMessageConverter라는 것을 사용한다. 예를 들어 Jackson을 이용해서 자바 객체를 JSON으로 변환할 때는 MappingJackson2HttpMessageConverter를 사용한다. 따라서 JSON으로 변환할 때 사용하는 MappingJackson2HttpMessageConverter를 새롭게 등록해서 날짜 형식을 원하는 형식으로 변환하도록 설정하면 모든 날짜 형식에 동일한 변환 규칙을 적용할 수 있다.
+
+MvcConfig
+
+@Configuration
+@EnableWebMvc
+public class MvcConfig implements WebMvcConfigurer {
+
+    ...
+
+    @Override
+    public void extendMessageConverters(List<HttpMessageConverter<?>> converters) {
+        ObjectMapper objectMapper = Jackson2ObjectMapperBuilder
+                .json()
+                .featuresToDisable(
+                        SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+                .build();
+        converters.add(0, new MappingJackson2HttpMessageConverter(objectMapper));
+    }
+}
+extendMessageConverters() 메서드는 WebMvcConfigurer 인터페이스에 정의된 메서드로서 HttpMessageConverter를 추가로 설정할 때 사용한다. @EnableWebMvc 애노테이션을 사용하면 스프링 MVC는 여러 형식으로 변환할 수 있는 HttpMessageConverter를 미리 등록한다. extendMessageConverters()는 등록된 HttpMessageConverter 목록을 파라미터로 받는다.
+
+미리 등록된 HttpMessageConverter에는 Jackson을 이용하는 것도 포함되어 있기 때문에 새로 생성한 HttpMessageConverter는 목록의 제일 앞에 위치시켜야 한다. 그래야 가장 먼저 적용된다. 이를 위해 새로운 HttpMessageConverter를 0번 인덱스에 추가했다.
+
+ObjectMappter objcetMapper~ 부분의 코드를 보면 JSON으로 변환할 때 사용할 ObjectMapper를 생성한다. 이 설정에서 Jackson이 날짜 형식을 출력할 때 유닉스 타임 스탬프로 출력하는 기능을 비활성화한다.
+
+새로 생성한 ObjectMapper를 사용하는 MappingJackson2HttpMessageConverter 객체를 converters의 첫 번째 항목으로 등록하면 설정이 끝난다.
+
+만약 모든 LocalDateTime 타입에 대해 ISO-8601 형식 대신 원하는 패턴을 설정하고 싶다면 다음과 같이 serializerByType() 메서드를 이용해서 LocalDateTime 타입에 대한 JsonSerializer를 직접 설정하면 된다.
+
+``` java
+@Configuration
+@EnableWebMvc
+public class MvcConfig implements WebMvcConfigurer {
+
+    ...
+
+    @Override
+    public void extendMessageConverters(List<HttpMessageConverter<?>> converters) {
+        ObjectMapper objectMapper = Jackson2ObjectMapperBuilder
+                .json()
+                .serializerByType(LodalDateTime.class, new LocalDateTimeSerializer(formatter)).build();
+        converters.add(0, new MappingJackson2HttpMessageConverter(objectMapper));
+    }
+}
+@RequestBody로 JSON 요청 처리
+지금까지 응답을 JSON으로 변환하는 것에 대해 살펴봤다. 이제 반대로 JSON 형식의 요청 데이터를 자바 객체로 변환하는 기능에 대해 살펴보자.
+
+JSON 형식으로 전송된 요청 데이터를 커맨드 객체로 받기 위해서는 커맨드 객체에 @RequestBody 애노테이션을 붙이면 된다.
+
+RestMemberController
+
+@RestController
+public class RestMemberController {
+
+    private MemberDao memberDao;
+    private MemberRegisterService registerService;
+
+    @PostMapping("/api/members")
+    public void newMember(@RequestBody @Valid RegisterRequest regReq, HttpServletResponse response) throws IOException {
+        try {
+            Long newMemberId = registerService.regist(regReq);
+            response.setHeader("Location", "/api/members/" + newMemberId);
+            response.setStatus(HttpServletResponse.SC_CREATED);
+        } catch (DuplicateMemberException duplicateMemberException) {
+            response.sendError(HttpServletResponse.SC_CONFLICT);
+        }
+    }
+
+    ...
+}
+@RequestBody 애노테이션을 커맨드 객체에 붙이면 JSON 형식의 문자열을 해당 자바 객체로 변환한다.
+
+회원 가입을 정상적으로 처리하면 응답 코드로 201(CREATED)을 전송한다. 중복된 ID를 전송한 경우 응답 상태 코드로 409(CONFLICT)를 리턴한다.
+
+JSON 형식으로 전송된 데이터를 올바르게 처리하려면 요청 컨텐츠 타입이 application/json 이어야 한다.
+
+JSON 데이터의 날짜 형식 다루기
+JSON 형식의 데이터를 날짜 형식으로 변환하는 방법을 살펴보자.
+
+특정 패턴을 가진 문자열을 LocalDateTime이나 Date 타입으로 변환하고 싶다면 @JsonFormat 애노테이션의 pattern 속성을 사용해서 패턴을 지정한다.
+
+@JsonFormat(pattern = "yyyyMMddHHmmss")
+private LocalDateTime birthDateTime;
+
+@JsonFormat(pattern = "yyyyMMdd HHmmss")
+private Date birthDate;
+특정 속성이 아니라 해당 타입을 갖는 모든 속성에 적용하고 싶다면 스프링 MVC 설정을 추가하면 된다.
+
+MvcConfig
+
+@Configuration
+@EnableWebMvc // OptionalValidatorFactoryBean을 글로벌 범위 Validator로 등록
+public class MvcConfig implements WebMvcConfigurer {
+    ...
+
+    @Override
+    public void extendMessageConverters(List<HttpMessageConverter<?>> converters) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+        ObjectMapper objectMapper = Jackson2ObjectMapperBuilder
+                .json()
+                .deserializerByType(LocalDateTime.class, new LocalDateTimeDeserializer(formatter))
+                .simpleDateFormat("yyyyMMdd HHmmss")
+                .build();
+        converters.add(0, new MappingJackson2HttpMessageConverter(objectMapper));
+    }
+}
+deserializerByType()는 JSON 데이터를 LocalDateTime 타입으로 변환할 때 사용할 패턴을 지정하고 simpleDateFormat()은 Date 타입으로 변환할 때 사용할 패턴을 지정한다.
+
+ResponseEntity로 객체 리턴하고 응답 코드 지정하기
+지금까지 예제 코드는 상태 코드를 지정하기 위해 HttpServletResponse의 setStatus() 메서드와 sendError() 메서드를 사용했다.
+
+문제는 HttpServletResponse를 이용해서 404 응답을 하면 JSON 형식이 아닌 서버가 기본으로 제공하는 HTML을 응답 결과로 제공한다는 점이다.
+
+API를 호출하는 프로그램 입장에서 JSON 응답과 HTML 응답을 모두 처리하는 것은 부담스럽다.
+
+ResponseEntity를 이용한 응답 데이터 처리
+정상인 경우와 비정상인 경우 모두 JSON 응답을 전송하는 방법은 ResponseEntity를 사용하는 것이다.
+
+ErrorResponse
+
+public class ErrorResponse {
+    private String message;
+
+    public ErrorResponse(String message) {
+        this.message = message;
+    }
+    
+    public String getMessage() {
+        return message;
+    }
+}
+RestMemberController
+
+@RestController
+public class RestMemberController {
+    ...
+    
+    @GetMapping("/api/members/{id}")
+    public ResponseEntity<Object> member(@PathVariable Long id) {
+        Member member = memberDao.selectById(id);
+        if (member == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse("no member"));
+        }
+        return ResponseEntity.status(HttpStatus.OK).body(member);
+    }
+}
+스프링 MVC는 리턴 타입이 ResponseEntity이면 ResponseEntity의 body로 지정한 객체를 사용해서 변환을 처리한다.
+
+ResponseEntity를 생성하는 기본 방법은 status와 body를 이용해서 상태코드와 JSON으로 변환할 객체를 지정하는 것이다.
+
+ResponseEntity.status(상태코드).body(객체)
+200(OK) 응답 코드와 몸체 데이터를 생성할 경우 다음과 같이 ok() 메서드를 이용해서 생성할 수 있다.
+
+ResponseEntity.ok(member)
+만약 몸체 내용이 없다면 다음과 같이 body를 지정하지 않고 build()로 바로 생성한다.
+
+ResponseEntity.status(HttpStatus.NOT_FOUND).build()
+아래와 같이 ResponseEntity.created() 메서드에 Location 헤더로 전달한 URI를 전달할 수도 있다.
+
+URI uri = URI.created("/api/members/", newMemberId);
+return ResponseEntity.created(uri).build();
+@ExceptionHandler 적용 메서드에서 ResponseEntity로 응답하기
+아까 member가 존재하지 않을 때 기본 HTML 에러 응답 대신에 JSON 응답을 제공하기 위해 ResponseEntity를 사용했다. 그런데 회원이 존재하지 않을 때 404 상태 코드를 응답해야 하는 기능이 많다면 에러 응답을 위해 ResponseEntity가 중복이 된다.
+
+@ExceptionHandler 애노테이션을 적용한 메서드에서 에러 응답을 처리하면 중복을 없앨 수 있다.
+
+@GetMapping("/api/members/{id}")
+public Member member(@PathVariable Long id) {
+    Member member = memberDao.selectById(id);
+    if (member == null) {
+        throw new MemberNotFoundException();
+    }
+    return member;
+}
+
+@ExceptionHandler(MemberNotFoundException.class)
+public ResponseEntity<ErrorResponse> handleNoData() {
+    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+        . body(new ErrorResponse("no member"));
+}
+회원 데이터가 존재하지 않으면 MemberNotFoundException이 발생하고, @ExceptionHandler 애노테이션을 사용한 handleNoData() 메서드가 에러를 처리한다. handleNoData()는 404 상태 코드와 ErrorResponse 객체를 몸체로 갖는 ResponseEntity를 리턴한다.
+
+ApiExceptionAdvice
+
+@RestControllerAdvice("controller")
+public class ApiExceptionAdvice {
+
+    @ExceptionHandler(MemberNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoData() {
+        return ResponseEntity
+            .status(HttpStatus.NOT_FOUND)
+            .body(new ErrorResponse("no member"));
+    }
+}
+@RestControllerAdivce 애노테이션을 사용하면 에러 코드가 한 곳에 모여 효과적으로 에러 응답을 관리할 수 있다. @RestControllerAdvice는 응답을 JSON이나 XML과 같은 형식으로 변환한다.
+
+@Valid 에러 결과를 JSON으로 응답하기
+@Valid 애노테이션을 붙인 커맨드 객체가 값 검증에 실패하면 400 상태코드를 응답한다.
+
+문제는 HttpServletResponse를 이용해서 상태 코드를 응답했을 때와 마찬가지로 HTML 응답을 전송한다는 점이다.
+
+@Valid 애노테이션을 이용한 검증에 실패했을 때 HTML 응답 대신에 JSON 형식 응답을 제공하고 싶다면 다음과 같이 Errors 타입 파라미터를 추가해서 직접 에러 응답을 수정하면 된다.
+
+@PostMapping("/api/members")
+public ResponseEntity<Object> newMember(
+    @RequestBody @Valid RegisterRequest regReq, Errors errors) {
+        if (errors.hasErrors()) {
+            String errorCodes = errors.getAllErrors() //List<ObjectError>
+            .stream()
+            .map(error -> error.getCodes()[0])
+            .collect(Collectors.joining("."));
+        return ResponseEntity
+            .status(HttpStatus.BAD_REQUEST)
+            .body(new ErrorResponse("errorCodes = " + errorCodes));
+        }
+   ...
+}
+이 코드는 hasErrors() 메서드를 이용해서 검증 에러가 존재하는지 확인한다. 검증 에러가 존재하면 getAllErrors() 메서드로 모든 에러 정보를 구하고 (ErrorObject 타입의 객체 목록), 각 에러의 코드 값을 연결한 문자열을 생성해서 errorCodes 변수에 할당한다.
+
+@ExceptionHandler 애노테이션을 이용해서   에러 검증 실패시 에러 응답을 생성해도 된다.
