@@ -226,9 +226,109 @@ public class DsDevConfig {
  - 다소 불편한 방법처럼 보인다.
 
 ### 프로퍼티 파일을 이용한 프로퍼티 설정
+> 스프링은 외부의 프로퍼티 파일을 이용해서 스프링 빈을 설정하는 방법을 제공하고 있다.
 
 #### @Configuration 어노테이션 이용 자바 설정에서 프로퍼티 사용
+자바 설정에서 프로퍼티 파일을 사용하려면 두 가지를 설정이 필요하다.
+ - PropertySourcesPlaceholderConfigurer 빈 설정
+ - @Value 어노테이션으로 프로퍼티 값 사용
+
+먼저 PropertySourcesPlaceholderConfigurer 클래스를 빈으로 등록한다.
+
+```java
+package config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
+import org.springframework.core.io.ClassPathResource;
+
+@Configuration
+public class PropertyConfig {
+
+	@Bean
+	public static PropertySourcesPlaceholderConfigurer properties() {
+		PropertySourcesPlaceholderConfigurer configurer = new PropertySourcesPlaceholderConfigurer();
+		configurer.setLocations(
+				new ClassPathResource("db.properties"),
+				new ClassPathResource("info.properties"));
+		return configurer;
+	}
+
+}
+```
+ - PropertySourcesPlaceholderConfigurer().setLocations 메서드는 프로퍼티 파일 목록을 인자로 전달받는다.
+ - 이때 스프링의 Resource 타입을 이용해서 파일 경로를 전달한다.
+ - db.properties 파일이 클래스 패스에 위치하고 있다면 ClassPathResource 클래스를 이용해서 프로퍼티 파일 정보를 전달한다.
+ - PropertySourcesPlaceholderConfigurer 타입 빈을 설정하는 메서드가 static 메서드이다.
+ - PropertySourcesPlaceholderConfigurer 클래스가 특수한 목적의 빈이기 때문이며, __정적 메서드로 지정하지 않으면 원하는 방식으로 동작하지 않는다.__
+ - PropertySourcesPlaceholderConfigurer 타입 빈은 setLocations() 메서드로 전달받은 프로퍼티 파일 목록 정보를 읽어와 필요할 때 사용한다.
+ - 이를 위한 것이 @Value 어노테이션이다.
+
+```java
+package config;
+
+import org.apache.tomcat.jdbc.pool.DataSource;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class DsConfigWithProp {
+    @Value("${db.driver}")
+    private String driver;
+    @Value("${db.url}")
+    private String jdbcUrl;
+    @Value("${db.user}")
+    private String user;
+    @Value("${db.password}")
+    private String password;
+
+	@Bean(destroyMethod = "close")
+	public DataSource dataSource() {
+		DataSource ds = new DataSource();
+		ds.setDriverClassName(driver);
+		ds.setUrl(jdbcUrl);
+		ds.setUsername(user);
+		ds.setPassword(password);
+		ds.setInitialSize(2);
+		ds.setMaxActive(10);
+		ds.setTestWhileIdle(true);
+		ds.setMinEvictableIdleTimeMillis(60000 * 3);
+		ds.setTimeBetweenEvictionRunsMillis(10 * 1000);
+		return ds;
+	}
+
+}
+```
+ - @Value 어노테이션이 ${구분자} 형식의 플레이스홀더를 값으로 갖고 있다.
+ - 이 경우 PropertySourcesPlaceholderConfigurer는 플레이스홀더의 값을 일치하는 프로퍼티 값으로 치환한다.
+ - 예를 들어 ${db.drvier} 플레이스홀더를 db.properties에 정의되어 있는 "db.driver" 프로퍼티 값으로 치환한다.
+ - 따라서 실제 빈을 생성하는 메서드는 @Value 어노테이션이 붙은 필드를 통해서 해당 프로퍼티의 값을 사용할 수 있다.
 
 #### 빈 클래스에서 사용하기
+> 빈으로 사용할 클래스에도 @Value 어노테이션을 붙일 수 있다.
 
-####
+```java
+package spring;
+
+import org.springframework.beans.factory.annotation.Value;
+
+public class Info {
+
+    @Value("${info.version}") // 프로퍼티를 필드에 할당할 때
+	private String version;
+
+	public void printInfo() {
+		System.out.println("version = " + version);
+	}
+
+	@Value("${info.version}") // set 메서드에 적용할 때
+	public void setVersion(String version) {
+		this.version = version;
+	}
+
+}
+```
+ - @Value 어노테이션을 필드에 붙이면 플레이스홀더에 해당하는 프로퍼티를 필드에 할당한다.
+ - @Value 어노테이션을 set 메서드에 적용할 수도 있다.
