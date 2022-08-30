@@ -1,0 +1,79 @@
+서블릿이란?
+https://velog.io/@falling_star3/Tomcat-%EC%84%9C%EB%B8%94%EB%A6%BFServlet%EC%9D%B4%EB%9E%80
+WAS?
+https://velog.io/@falling_star3/web-Web-Server%EC%99%80-WASWeb-Application-Server
+
+
+
+간단한 웹 어플리케이션의 구성 요소
+간단한 웹 어플리케이션의 전형적인 구조는 아래와 같다
+
+
+
+프론트 서블릿
+
+컨트롤러 + 뷰
+서비스
+DAO
+프론트 서블릿은 웹 브라우저의 모든 요청을 받는 창구 역할을 한다. 스프링 MVC에서는 DispatcherServlet이 프론트 서블릿의 역할을 수행한다.
+
+
+
+컨트롤러는 실제 웹 브라우저의 요청을 처리한다. 컨트롤러의 주요 역할은 다음과 같다.
+
+컨트롤러가 요구한 기능을 실행
+응답 결과를 생성하는데 필요한 모델 생성
+응답 결과를 생성할 뷰 선택
+컨트롤러는 어플리케이션이 제공하는 기능과 사용자 요청을 연결하는 매개체로서 기능 제공을 위한 로직을 직접 수행하지는 않는다. 대신 해당 로직을 제공하는 서비스에 그 처리를 위임한다.
+
+서비스는 기능의 로직을 구현한다. 서비스는 DB 연동이 필요하면 DAO를 사용한다. DAO는 Data Access Object의 약자로서 DB와 웹 어플리케이션 간에 데이터를 이동시켜 주는 역할을 맡는다. 어플리케이션은 DAO를 통해서 DB에 데이터를 추가하거나 DB에서 데이터를 읽어온다.>
+
+목록이나 상세 화면과 같이 데이터를 조회하는 기능만 있고 부가적인 로직이 없는 경우에는 컨트롤러에서 직접 DAO를 사용하기도 한다.
+
+서비스의 구현
+비밀번호 변경 기능은 다음 로직을 서비스에서 수행한다.
+
+DB에서 비밀번호를 변경할 회원의 데이터를 구한다.
+존재하지 않으면 익셉션을 발생시킨다.
+회원 데이터의 비밀번호를 변경한다.,
+변경 내역을 DB에 반영한다.
+이런 로직들은 한 번의 과정으로 끝나기보다는 몇 단계의 과정을 거치고는 한다. 중간 과정에서 실패가 나면 이전까지 했던 것을 취소해야하고, 모든 과정을 성공적으로 진행했을 때 완료해야 한다. 이런 이유로 서비스 메서드를 트랜잭션 범위에서 실행한다. 비밀번호 변경 기능도 스프링의 @Transactional을 이용해서 수행했다.
+
+@RequestMapping(method = RequestMethod.POST)
+public String submit(@ModelAttribute("command") ChangePwdCommand pwdCmd, Errors errors, HttpSession session) {
+    ...
+    changePasswordService.changePassword(
+        authInfo.getEmail(),
+        pwdCmd.getCurrentPassword(),
+        pwdCmd.getNewPassword());
+    ...
+}
+커맨드 클래스를 작성한 이유는 스프링 MVC가 제공하는 폼 값 바인딩과 검증, 스프링 폼 태그의 연동 기능을 사용하기 위함이다.
+
+컨트롤러에서의 DAO 접근
+서비스 메서드에서 어떤 로직도 수행하지 않고 단순히 DAO의 메서드만 호출하고 끝나는 코드도 잇다.
+
+public class MemberService {
+    ...
+    public Member getMember(Long id) {
+        return memberDao.selectById(id);
+    }
+}
+이 경우 컨트롤러는 서비스를 사용해야 한다는 압박에서 벗어나 다음과 같이 DAO에 직접 접근해도 큰 틀에서 웹 어플리케이션의 계층 구조는 유지된다고 본다.
+
+@RequestMapping("/member/detail/{id}")
+public String detail(@PathVariable("id") Long id, Model model) {
+    Member member = memberDao.selectByEmail(id);
+    if (member == null) {
+        ...
+    }
+    ...
+}
+컨트롤러에서 서비스 계층을 거치지 않고 바로 데이터 접근 계층의 DAO를 사용하는 방식은 개발자마다 호불호가 갈린다.
+
+패키지 구성
+
+
+웹 요청을 처리하기 위한 영역에는 컨트롤러 클래스와 관련된 클래스들이 위치한다. 커맨드 객체의 값을 검증하기 위한 Validator도 웹 요청 처리 영역에 위치할 수 있는데 관점에 따라 Validator를 기능 제공 영역에 위치시킬 수도 있다. 웹 영역의 패키지는 web, member와 같이 영역에 알맞은 패키지 이름을 사용하게 된다.
+
+기능 제공 영역에는 기능 제공을 위해 필요한 서비스, DAO, 그리고 Member와 같은 모델 클래스가 위치한다. 기능 제공 영역은 다시 service, dao, model과 같은 세부 패키지로 구분하기도 한다.
